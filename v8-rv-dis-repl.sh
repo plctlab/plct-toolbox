@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Release Notes:
+# v0.1 20200620 initial release
+#
+# maintainer: @lazyparser
+# bug report url:
+#     https://github.com/isrc-cas/PLCT-Toolbox/issues
+# feedbacks are welcome!
+
 tmp_id=b9c474f8981087776b8631ea6b99e01e
 inputdata="hex.${tmp_id}.txt"
 tmpfile1="dump1.${tmp_id}.bin"
