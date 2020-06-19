@@ -29,9 +29,8 @@ process_one_bunk () {
 	# debug
 	od -x ${tmpfile2} > ${tmpfile2}.txt
 	# FIXME: remove headers of outputs
-	riscv64-unknown-elf-objdump -D -m riscv:rv64 -b binary ${tmpfile2} > ${outfile}
+	riscv64-unknown-elf-objdump -D -m riscv:rv64 -b binary ${tmpfile2} | tail -n +8 > ${outfile}
 	#cat ${outfile}
-	paste "$1" "$outfile"
 }
 
 
@@ -48,15 +47,17 @@ process_code_dump () {
 				# a empty line triggers disassembler
 				if [ x"$xl" = x"" ]; then
 					echo "$pure_hex_data" | process_one_bunk
-					echo "$raw_hex_lines" | paste - ${outfile}
+					echo -e "$raw_hex_lines"  > "${inputdata}"
+					paste "$inputdata" "${outfile}"
 					pure_hex_data=""
 					raw_hex_lines=""
 					break
 				else
 					echo "$xl" | grep -i -q '^0x' || die "ERROR: expect hex but got [$xl]"
-					one_hex=`echo "$l" | awk '{print $3}'`
+					xl=`echo "$xl" | sed 's, *nop,,'`
+					one_hex=`echo "$xl" | awk '{print $3}'`
 					pure_hex_data="${pure_hex_data}\n${one_hex}"
-					raw_hex_lines="${raw_hex_lines}\n$xl"
+					raw_hex_lines="${raw_hex_lines}\n${xl}"
 
 				fi
 			done
