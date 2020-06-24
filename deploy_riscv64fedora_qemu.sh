@@ -33,6 +33,8 @@ echo 'If clone is hard, try snahpshot:'
 echo '    wget https://mirror.iscas.ac.cn/plct/qemu.20200613.tar.bz2'
 echo '    tar xf qemu.20200613.tar.bz2'
 echo '    cd qemu'
+echo '    # IMPORTANT: master commit might let you see "roms overlay reset error"'
+echo '    git checkout v5.0.0 && git submodule update -r'
 echo '    ./configure --target-list=riscv64-softmmu && make -j 4'
 echo '    sudo make install # if you want. Optional.'
 echo
