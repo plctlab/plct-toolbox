@@ -58,8 +58,9 @@ echo 'You need copy both d8 and snapshot'
 echo
 echo '    scp -r -P 22022 out/rv64.natived8.debug/snapshot_blob.bin  root@localhost:~/'
 echo '    scp -r -P 22022 out/rv64.natived8.debug/d8  root@localhost:~/'
+echo '    scp -r -P 22022 testcase/helloworld.js  root@localhost:~/'
 echo
-echo 'Now you can happily run ./d8 and see the crash call stack :-P'
+echo 'Now you can happily run "./d8 helloworld.js" and see the crash call stack :-P'
 echo
 
 echo 'Ready? Press ENTER to start QEMU:'
