@@ -96,11 +96,11 @@ sed -i 's,riscv64-linux-gnu,riscv64-unknown-linux-gnu,' \
 
 cd $V8_ROOT/v8
 gn gen out/riscv64.native.debug \
-    --args='is_component_build=false \
-    is_debug=true target_cpu="riscv64" \
-    v8_target_cpu="riscv64" use_goma=false \
-    goma_dir="None" \
-    treat_warnings_as_errors=false \
+    --args='is_component_build=false
+    is_debug=true target_cpu="riscv64"
+    v8_target_cpu="riscv64" use_goma=false
+    goma_dir="None"
+    treat_warnings_as_errors=false
     symbol_level = 0'
 ninja -C out/riscv64.native.debug -j $(nproc)
 
