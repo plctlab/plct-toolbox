@@ -126,7 +126,7 @@ unxz -k Fedora-Developer-Rawhide-20191123.n.0-sda.raw.xz
 # This is needed for v8 debugging, for the out/ folder has 36GB if the symbol_level remains default value, 2.
 sudo apt install libguestfs-tools -y
 truncate -r Fedora-Developer-Rawhide-*.raw expanded.raw
-truncate -s 100G expanded.raw
+truncate -s 60G expanded.raw
 sudo virt-resize -v -x --expand /dev/sda4 Fedora-Developer-Rawhide-*.raw expanded.raw
 sudo virt-filesystems --long -h --all -a expanded.raw
 sudo virt-df -h -a expanded.raw
