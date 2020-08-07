@@ -60,7 +60,11 @@ popd
 ###########################################################
 
 # cd $V8_ROOT/v8
-gn gen out/riscv64.sim --args='is_component_build=false is_debug=true target_cpu="x64" v8_target_cpu="riscv64" use_goma=false goma_dir="None"'
+gn gen out/riscv64.sim \
+    --args='is_component_build=false
+    is_debug=true target_cpu="x64"
+    v8_target_cpu="riscv64"
+    use_goma=false goma_dir="None"'
 
 ninja -C out/riscv64.sim -j $(nproc)
 
@@ -118,23 +122,35 @@ git submodule update -r --init -f
 # Deploy the Fedora Developer Rawhide on QEMU/RISCV64
 ###########################################################
 
+cd $V8_ROOT/
 # NOTE: 100G HDD space needed.
 wget https://dl.fedoraproject.org/pub/alt/risc-v/repo/virt-builder-images/images/Fedora-Developer-Rawhide-20191123.n.0-fw_payload-uboot-qemu-virt-smode.elf
 wget https://dl.fedoraproject.org/pub/alt/risc-v/repo/virt-builder-images/images/Fedora-Developer-Rawhide-20191123.n.0-sda.raw.xz
 unxz -k Fedora-Developer-Rawhide-20191123.n.0-sda.raw.xz
 
 # This is needed for v8 debugging, for the out/ folder has 36GB if the symbol_level remains default value, 2.
+
 sudo apt install libguestfs-tools -y
 truncate -r Fedora-Developer-Rawhide-*.raw expanded.raw
 truncate -s 60G expanded.raw
+
+# FIXME: we may not need sudo to run this three commands.
 sudo virt-resize -v -x --expand /dev/sda4 Fedora-Developer-Rawhide-*.raw expanded.raw
 sudo virt-filesystems --long -h --all -a expanded.raw
 sudo virt-df -h -a expanded.raw
 
 
 echo "Now we are ready to Start QEMU."
-echo -n "Open a new tab or terminal to scp. Then Press ENTER:"
-read
+echo "copy these commands for later use:"
+echo
+echo "scp -r -P 3333 $V8_ROOT/v8/out/riscv64.native.debug $V8_ROOT/v8/tools $V8_ROOT/v8/test root@localhost:~/"
+echo
+echo "Open a new tab or terminal to scp."
+echo
+echo "Tip: You can quit qemu by pressing 'Ctrl-a x' key sequence."
+echo "Tip: fedora forbid root password login. Either upload your pubkey into"
+echo "     ROOT/.ssh/authorized_keys or add 'PermitRootLogin=yes' in /etc/ssh/sshd_config"
+read -p "Ready? Then Press ENTER:"
 
 #   -drive file=Fedora-Developer-Rawhide-${VER}-sda.raw,format=raw,id=hd0
 export VER=20191123.n.0
