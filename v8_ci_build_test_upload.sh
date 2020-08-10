@@ -26,7 +26,6 @@ while true; do
 
   [ x"$last_build" = x"$curr_id" ] && sleep 600 && continue
 
-  last_build="$curr_id"
   LOG_FILE="$V8_ROOT/log.${curr_id}.txt"
 
   sed -i 's,riscv64-linux-gnu,riscv64-unknown-linux-gnu,' \
@@ -56,6 +55,7 @@ while true; do
   echo "`date` | sleep 10 minutes..."
 
   # Only update commit bookkeeping file after succeed
+  last_build="$curr_id"
   echo "$curr_id" > $LAST_ID_FILE
 
   sleep 600
