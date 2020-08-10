@@ -108,6 +108,10 @@ gn gen out/riscv64.native.debug \
     symbol_level = 0'
 ninja -C out/riscv64.native.debug -j $(nproc)
 
+# Remove obj and gen files that not needed.
+rm -rf out/riscv64.native.debug/obj
+rm -rf out/riscv64.native.debug/gen
+
 cd $V8_ROOT/
 git clone https://github.com/qemu/qemu.git
 cd qemu
@@ -139,30 +143,41 @@ sudo virt-resize -v -x --expand /dev/sda4 Fedora-Developer-Rawhide-*.raw expande
 sudo virt-filesystems --long -h --all -a expanded.raw
 sudo virt-df -h -a expanded.raw
 
-
 echo "Now we are ready to Start QEMU."
-echo "copy these commands for later use:"
 echo
-echo "scp -r -P 3333 $V8_ROOT/v8/out/riscv64.native.debug $V8_ROOT/v8/tools $V8_ROOT/v8/test root@localhost:~/"
+echo "Open a new terminal (Tab) to start QEMU"
+echo "copy these commands in the new terminal:"
 echo
-echo "Open a new tab or terminal to scp."
-echo
+echo "export VER=20191123.n.0"
+echo "$V8_ROOT/qemu/riscv64-softmmu/qemu-system-riscv64 \\"
+echo "  -nographic \\"
+echo "  -machine virt \\"
+echo "  -smp 4 \\"
+echo "  -m 4G \\"
+echo "  -kernel Fedora-Developer-Rawhide-${VER}-fw_payload-uboot-qemu-virt-smode.elf \\"
+echo "  -object rng-random,filename=/dev/urandom,id=rng0 \\"
+echo "  -device virtio-rng-device,rng=rng0 \\"
+echo "  -device virtio-blk-device,drive=hd0 \\"
+echo "  -drive file=expanded.raw,format=raw,id=hd0 \\"
+echo "  -device virtio-net-device,netdev=usernet \\"
+echo "  -netdev user,id=usernet,hostfwd=tcp::3333-:22"
+echo  
 echo "Tip: You can quit qemu by pressing 'Ctrl-a x' key sequence."
 echo "Tip: fedora forbid root password login. Either upload your pubkey into"
 echo "     ROOT/.ssh/authorized_keys or add 'PermitRootLogin=yes' in /etc/ssh/sshd_config"
 read -p "Ready? Then Press ENTER:"
 
-#   -drive file=Fedora-Developer-Rawhide-${VER}-sda.raw,format=raw,id=hd0
-export VER=20191123.n.0
-$V8_ROOT/qemu/riscv64-softmmu/qemu-system-riscv64 \
-  -nographic \
-  -machine virt \
-  -smp 4 \
-  -m 4G \
-  -kernel Fedora-Developer-Rawhide-${VER}-fw_payload-uboot-qemu-virt-smode.elf \
-  -object rng-random,filename=/dev/urandom,id=rng0 \
-  -device virtio-rng-device,rng=rng0 \
-  -device virtio-blk-device,drive=hd0 \
-  -drive file=expanded.raw,format=raw,id=hd0 \
-  -device virtio-net-device,netdev=usernet \
-  -netdev user,id=usernet,hostfwd=tcp::3333-:22
+scp -r -P 3333 $V8_ROOT/v8/out/riscv64.native.debug $V8_ROOT/v8/tools $V8_ROOT/v8/test root@localhost:~/
+ssh -p 3333 root@localhost python2 ./tools/run-tests.py \
+    --outdir=riscv64.native.debug \
+    -p verbose --report \
+    cctest \
+    unittests \
+    wasm-api-tests \
+    mjsunit \
+    intl \
+    message \
+    debugger \
+    inspector \
+    mkgrokdump 2>&1 | tee v8.build.test.log
+
