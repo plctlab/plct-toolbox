@@ -6,6 +6,12 @@
 V8_ROOT="$PWD"
 last_build="NULL"
 
+# ensure there are depot_tools in your path
+PATH="$V8_ROOT/depot_tools:$PATH"
+# ensure you have built riscv-gnu-toolchain
+PATH="$PATH:/opt/riscv/bin"
+#PATH="$PATH:$HOME/opt/riscv/bin"
+
 LAST_ID_FILE="$V8_ROOT/_last_build_id"
 
 [ -f "$LAST_ID_FILE" ] && last_build=`cat "$LAST_ID_FILE"`
@@ -20,7 +26,6 @@ while true; do
 
   [ x"$last_build" = x"$curr_id" ] && sleep 600 && continue
 
-  echo "$curr_id" > $LAST_ID_FILE
   last_build="$curr_id"
   LOG_FILE="$V8_ROOT/log.${curr_id}.txt"
 
@@ -49,6 +54,9 @@ while true; do
   echo "Build Finished. Log file is at $LOG_FILE"
   echo "    scp `hostname`:$LOG_FILE ./"
   echo "`date` | sleep 10 minutes..."
+
+  # Only update commit bookkeeping file after succeed
+  echo "$curr_id" > $LAST_ID_FILE
 
   sleep 600
 done
