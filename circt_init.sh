@@ -13,16 +13,16 @@ ensure_cmake () {
   echo "I will download and use the latest sable cmake,"
   echo "Press any key other than enter to skip this step."
   echo "or press ENTER to continue to download & build cmkae."
-  read -t 5 -p "You have 5 seconds to refuse, or I'll continue:"
-  [ x"$REPLY" = x"" ] || return
-  wget https://github.com/Kitware/CMake/releases/download/v3.18.1/cmake-3.18.1.tar.gz
-  cd cmake-3.18.1
-  [ -d "$HOME/bin" ] || mkdir -p "$HOME/bin"
-  ./configure --prefix="$HOME/bin" --parallel=$(nproc)
-  make install -j $(nproc)
-  export PATH="$HOME/bin/bin:$PATH"
-  echo 'export PATH="$HOME/bin/bin:$PATH"' >> $HOME/.bashrc
-
+  read -t 5 -p "You have 5 seconds to refuse, or I'll continue:" cmake_yes
+  if [ -n "$cmake_yes" ]; then
+    wget https://github.com/Kitware/CMake/releases/download/v3.18.1/cmake-3.18.1.tar.gz
+    cd cmake-3.18.1
+    [ -d "$HOME/bin" ] || mkdir -p "$HOME/bin"
+    ./configure --prefix="$HOME/bin" --parallel=$(nproc)
+    make install -j $(nproc)
+    export PATH="$HOME/bin/bin:$PATH"
+    echo 'export PATH="$HOME/bin/bin:$PATH"' >> $HOME/.bashrc
+  fi
 }
 
 ensure_cmake
