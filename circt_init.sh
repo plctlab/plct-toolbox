@@ -14,13 +14,14 @@ ensure_cmake () {
   echo "Press any key other than enter to skip this step."
   echo "or press ENTER to continue to download & build cmkae."
 
-  read -t 5 -p "You have 5 seconds to refuse, or I'll continue:" cmake_yes || true
+  read -t 5 -p "You have 5 seconds to refuse, or I'll continue:" cmake_yes || echo "yes"
 
   if [ -z "$cmake_yes" ]; then
-    echo "HITTTTTTTT"
-    sleep 6
-    wget https://github.com/Kitware/CMake/releases/download/v3.18.1/cmake-3.18.1.tar.gz
-    cd cmake-3.18.1
+    CMAKE_FILE=cmake-3.18.1.tar.gz
+    CMAKE_DIR=${CMAKE_FILE%.tar.gz}
+    wget https://github.com/Kitware/CMake/releases/download/v3.18.1/$CMAKE_FILE
+    tar xf $CMAKE_FILE
+    cd $CMAKE_DIR
     [ -d "$HOME/bin" ] || mkdir -p "$HOME/bin"
     ./configure --prefix="$HOME/bin" --parallel=$(nproc)
     make install -j $(nproc)
