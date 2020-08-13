@@ -32,19 +32,27 @@ mkdir -p $V8_ROOT
 cd $V8_ROOT
 fetch v8
 cd v8
-git checkout 8.1.268
+
+# Deprecate: for the riscv-porting-dev branch. switched to 'riscv64'
+#            since Aug 13 2020.
+#git checkout 8.1.268
 
 # pwd: $V8_ROOT/v8
-pushd third_party/icu
-git checkout dbd3825b31041d782c5b504c59dcfb5ac7dda08c
-popd
+# Deprecate: for the riscv-porting-dev branch. switched to 'riscv64'
+#            since Aug 13 2020.
+#pushd third_party/icu
+#git checkout dbd3825b31041d782c5b504c59dcfb5ac7dda08c
+#popd
 
 # cd $V8_ROOT/v8
 git remote add riscv https://github.com/v8-riscv/v8.git
 # or alternatively using ssh if you are developer
 #git remote add riscv git@github.com:v8-riscv/v8.git
 git fetch riscv
-git checkout riscv-porting-dev
+# Deprecate: for the riscv-porting-dev branch. switched to 'riscv64'
+#            since Aug 13 2020.
+#git checkout riscv-porting-dev
+git checkout riscv64
 
 cp patches/build.patch build/
 pushd build
@@ -161,7 +169,7 @@ echo "  -device virtio-blk-device,drive=hd0 \\"
 echo "  -drive file=expanded.raw,format=raw,id=hd0 \\"
 echo "  -device virtio-net-device,netdev=usernet \\"
 echo "  -netdev user,id=usernet,hostfwd=tcp::3333-:22"
-echo  
+echo
 echo "Tip: You can quit qemu by pressing 'Ctrl-a x' key sequence."
 echo "Tip: fedora forbid root password login. Either upload your pubkey into"
 echo "     ROOT/.ssh/authorized_keys or add 'PermitRootLogin=yes' in /etc/ssh/sshd_config"
@@ -180,4 +188,3 @@ ssh -p 3333 root@localhost python2 ./tools/run-tests.py \
     debugger \
     inspector \
     mkgrokdump 2>&1 | tee v8.build.test.log
-
