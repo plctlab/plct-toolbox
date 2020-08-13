@@ -19,7 +19,9 @@ LAST_ID_FILE="$V8_ROOT/_last_build_id"
 while true; do
   cd "$V8_ROOT"/v8
   git fetch --all
-  git reset --hard riscv/riscv-porting-dev
+  # If you want the bot to focus on main branch, then use reset
+  #git reset --hard riscv/riscv-porting-dev
+  git pull
 
   curr_id=`git log -1 | grep commit | head -n 1 | cut -f2 -d' '`
   echo "$curr_id"
