@@ -49,7 +49,7 @@ while true; do
 
   LOG_FILE="$PWD/log.${curr_hash}.txt"
 
-  python2 ./tools/run-tests.py \
+  python2 ./tools/run-tests.py -j 3 \
     --outdir=riscv64.native.debug \
     -p verbose --report \
     cctest \
@@ -63,7 +63,7 @@ while true; do
     mkgrokdump 2>&1 | tee "$LOG_FILE"
 
   # use pastebin to share log
-  pastebinit -i "$LOG_FILE" | tee pastebin.log
+  pastebinit -i "$LOG_FILE" -b paste.ubuntu.com | tee pastebin.log
   post_to_slack pastebin.log
   echo "[`date`] Build Finished. Sleep 10 minutes..."
   echo "    scp `hostname`:$LOG_FILE ./"
