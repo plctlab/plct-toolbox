@@ -12,7 +12,7 @@ D8_URL="$V8_URL/out/riscv64.native.debug/"
 LAST_ID_FILE="$HOME/_v8_last_build_hash"
 
 post_to_slack () {
-  # TODO
+  echo TODO
 }
 
 

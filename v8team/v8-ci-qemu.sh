@@ -17,7 +17,7 @@ LAST_ID_FILE="$V8_ROOT/_last_build_id"
 [ -f "$LAST_ID_FILE" ] && last_build=`cat "$LAST_ID_FILE"`
 
 post_to_slack () {
-  # TODO
+  echo TODO
 }
 
 while true; do
