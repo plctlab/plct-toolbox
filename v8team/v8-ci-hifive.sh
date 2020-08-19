@@ -62,6 +62,26 @@ while true; do
     inspector \
     mkgrokdump 2>&1 | tee "$LOG_FILE"
 
+  python2 test/benchmarks/csuite/csuite.py \
+    -r 1 \
+    sunspider \
+    baseline \
+    riscv64.native.debug/d8 \
+    | tee -a "LOG_FILE"
+
+  python2 test/benchmarks/csuite/csuite.py \
+    -r 1 \
+    kraken \
+    baseline \
+    riscv64.native.debug/d8 \
+    | tee -a "LOG_FILE"
+
+  python2 test/benchmarks/csuite/csuite.py \
+    -r 1 \
+    octane \
+    baseline \
+    riscv64.native.debug/d8 \
+    | tee -a "LOG_FILE"
   # use pastebin to share log
   pastebinit -i "$LOG_FILE" -b paste.ubuntu.com | tee pastebin.log
   post_to_slack pastebin.log

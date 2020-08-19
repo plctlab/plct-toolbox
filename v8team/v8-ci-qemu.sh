@@ -61,7 +61,31 @@ while true; do
     rsync -a --delete -e "ssh -p 3333" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
 
     if [ $? -eq 0 ]; then
-      ssh -p 3333 root@localhost python2 ./tools/run-tests.py --outdir=riscv64.native.debug -p verbose --report cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump 2>&1 | tee -a "$LOG_FILE"
+      ssh -p 3333 root@localhost python2 \
+        ./tools/run-tests.py \
+        -j 6 \
+        --outdir=riscv64.native.debug \
+        -p verbose --report \
+        cctest unittests wasm-api-tests mjsunit intl \
+        message debugger inspector mkgrokdump 2>&1 | tee -a "$LOG_FILE"
+      ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
+        -r 1 \
+        sunspider \
+        baseline \
+        riscv64.native.debug/d8 \
+        | tee -a "LOG_FILE"
+      ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
+        -r 1 \
+        kraken \
+        baseline \
+        riscv64.native.debug/d8 \
+        | tee -a "LOG_FILE"
+      ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
+        -r 1 \
+        octane \
+        baseline \
+        riscv64.native.debug/d8 \
+        | tee -a "LOG_FILE"
     else
       echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
     fi
