@@ -11,6 +11,11 @@ D8_URL="$V8_URL/out/riscv64.native.debug/"
 
 LAST_ID_FILE="$HOME/_v8_last_build_hash"
 
+post_to_slack () {
+  # TODO
+}
+
+
 [ -f "$LAST_ID_FILE" ] && last_hash=`cat "$LAST_ID_FILE"`
 
 [ -d ./test ]  || rsync -a --delete "$V8_URL/test/" ./test/
@@ -20,13 +25,27 @@ while true; do
 
   rsync -a --delete "$D8_URL" ./riscv64.native.debug/
 
+  if [ $? -ne 0 ]; then
+    echo "ERROR: rsync faild"
+    sleep 3600
+    continue
+  fi
+
   d8="$PWD/riscv64.native.debug/d8"
+
+  if [ -f "$d8" ]; then
+    echo "ERROR: Could not find d8 in << $d8 >>"
+    sleep 3600
+    continue
+  fi
 
   curr_hash=`md5sum "$d8" | cut -f1 -d' '`
 
-  echo $curr_hash
-
-  [ x"$last_hash" = x"$curr_hash" ] && sleep 3600 && continue
+  if [ x"$last_hash" = x"$curr_hash" ]; then
+    echo "INFO: current version $curr_hash has been checked. SKIP"
+    sleep 3600
+    continue
+  fi
 
   LOG_FILE="$PWD/log.${curr_hash}.txt"
 
@@ -43,9 +62,11 @@ while true; do
     inspector \
     mkgrokdump 2>&1 | tee "$LOG_FILE"
 
-  echo "Build Finished. Log file is at $LOG_FILE"
+  # use pastebin to share log
+  pastebinit -i "$LOG_FILE" | tee pastebin.log
+  post_to_slack pastebin.log
+  echo "[`date`] Build Finished. Sleep 10 minutes..."
   echo "    scp `hostname`:$LOG_FILE ./"
-  echo "`date` | sleep 10 minutes..."
 
   # Only update commit bookkeeping file after succeed
   echo "$curr_hash" > $LAST_ID_FILE
