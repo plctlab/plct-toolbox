@@ -33,7 +33,7 @@ while true; do
 
   d8="$PWD/riscv64.native.debug/d8"
 
-  if [ -f "$d8" ]; then
+  if [ ! -f "$d8" ]; then
     echo "ERROR: Could not find d8 in << $d8 >>"
     sleep 3600
     continue
