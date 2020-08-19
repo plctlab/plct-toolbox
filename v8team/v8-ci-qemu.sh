@@ -16,10 +16,16 @@ LAST_ID_FILE="$V8_ROOT/_last_build_id"
 
 [ -f "$LAST_ID_FILE" ] && last_build=`cat "$LAST_ID_FILE"`
 
+post_to_slack () {
+  # TODO
+}
+
 while true; do
   cd "$V8_ROOT"/v8
   git fetch --all
-  # If you want the bot to focus on main branch, then use reset
+  # the diffault branch is 'riscv64' but you can run this script
+  # on any branch you wnt.
+  # If you want the bot to focus on specific branch, then use reset (e.g.)
   #git reset --hard riscv/riscv-porting-dev
   git pull
 
@@ -29,6 +35,9 @@ while true; do
   [ x"$last_build" = x"$curr_id" ] && sleep 600 && continue
 
   LOG_FILE="$V8_ROOT/log.${curr_id}.txt"
+
+  # clean the log file
+  git log -1 > "$LOG_FILE"
 
   sed -i 's,riscv64-linux-gnu,riscv64-unknown-linux-gnu,' \
       "$V8_ROOT"/v8/build/toolchain/linux/BUILD.gn
@@ -44,17 +53,26 @@ while true; do
       treat_warnings_as_errors=false
       symbol_level = 0'
 
-  ninja -C out/riscv64.native.debug -j $(nproc)
+  ninja -C out/riscv64.native.debug -j $(nproc) -v | tee -a "$LOG_FILE"
 
-  #scp -r -P 3333 $V8_ROOT/v8/out/riscv64.native.debug $V8_ROOT/v8/tools $V8_ROOT/v8/test root@localhost:~/"
+  if [ $? -ne 0 ]; then
+    echo "ERROR: build failed" | tee -a "$LOG_FILE"
+  else
+    rsync -a --delete -e "ssh -p 3333" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
 
-  rsync -a --delete -e "ssh -p 3333" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
+    if [ $? -eq 0 ]; then
+      ssh -p 3333 root@localhost python2 ./tools/run-tests.py --outdir=riscv64.native.debug -p verbose --report cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump 2>&1 | tee -a "$LOG_FILE"
+    else
+      echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
+    fi
 
-  ssh -p 3333 root@localhost python2 ./tools/run-tests.py --outdir=riscv64.native.debug -p verbose --report cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump 2>&1 | tee "$LOG_FILE"
+  fi
 
-  echo "Build Finished. Log file is at $LOG_FILE"
+  # use pastebin to share log
+  pastebinit -i "$LOG_FILE" | tee pastebin.log
+  post_to_slack pastebin.log
+  echo "[`date`] Build Finished. Sleep 10 minutes..."
   echo "    scp `hostname`:$LOG_FILE ./"
-  echo "`date` | sleep 10 minutes..."
 
   # Only update commit bookkeeping file after succeed
   last_build="$curr_id"
