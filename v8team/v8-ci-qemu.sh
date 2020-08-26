@@ -34,7 +34,7 @@ while true; do
 
   [ x"$last_build" = x"$curr_id" ] && sleep 600 && continue
 
-  LOG_FILE="$V8_ROOT/log.${curr_id}.txt"
+  LOG_FILE="$V8_ROOT/log.${curr_id}"
 
   # clean the log file
   git log -1 > "$LOG_FILE"
@@ -50,13 +50,12 @@ while true; do
       v8_target_cpu="riscv64"
       use_goma=false
       goma_dir="None"
-      treat_warnings_as_errors=false
       symbol_level = 0'
 
-  ninja -C out/riscv64.native.debug -j $(nproc) -v | tee -a "$LOG_FILE"
+  ninja -C out/riscv64.native.debug -j $(nproc) -v | tee -a "${LOG_FILE}.build"
 
   if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE"
+    echo "ERROR: build failed" | tee -a "$LOG_FILE.build"
   else
     rsync -a --delete -e "ssh -p 3333" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
 
@@ -73,19 +72,19 @@ while true; do
         sunspider \
         baseline \
         riscv64.native.debug/d8 \
-        | tee -a "LOG_FILE"
+        | tee -a "$LOG_FILE.sunsipder"
       ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
         -r 1 \
         kraken \
         baseline \
         riscv64.native.debug/d8 \
-        | tee -a "LOG_FILE"
+        | tee -a "$LOG_FILE.kraken"
       ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
         -r 1 \
         octane \
         baseline \
         riscv64.native.debug/d8 \
-        | tee -a "LOG_FILE"
+        | tee -a "$LOG_FILE.octane"
     else
       echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
     fi
