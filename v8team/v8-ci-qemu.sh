@@ -5,6 +5,7 @@
 
 V8_ROOT="$PWD"
 last_build="NULL"
+QEMU_SSH_PORT=3333
 
 # ensure there are depot_tools in your path
 PATH="$V8_ROOT/depot_tools:$PATH"
@@ -18,6 +19,30 @@ LAST_ID_FILE="$V8_ROOT/_last_build_id"
 
 post_to_slack () {
   echo TODO
+}
+
+# arg 1: d8 folder
+# arg 2: benchmark name
+# arg 3: logfile
+run_js_test () {
+  ssh -p $QEMU_SSH_PORT root@localhost python2 \
+    ./tools/run-tests.py \
+    -j 8 \
+    --outdir="$1" \
+    -p verbose --report \
+    "$2" 2>&1 | tee "$3"
+}
+
+# arg 1: d8 path
+# arg 2: benchmark name
+# arg 3: logfile
+run_js_bench () {
+  ssh -p $QEMU_SSH_PORT root@localhost python2 test/benchmarks/csuite/csuite.py \
+    -r 1 \
+    "$2" \
+    baseline \
+    "$1" \
+    2>&1 | tee "$3"
 }
 
 while true; do
@@ -52,39 +77,22 @@ while true; do
       goma_dir="None"
       symbol_level = 0'
 
-  ninja -C out/riscv64.native.debug -j $(nproc) -v | tee -a "${LOG_FILE}.build"
+  ninja -C out/riscv64.native.debug -j $(nproc) -v | tee -a "${LOG_FILE}"
 
   if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE.build"
+    echo "ERROR: build failed" | tee -a "$LOG_FILE"
   else
-    rsync -a --delete -e "ssh -p 3333" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
+    rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
 
     if [ $? -eq 0 ]; then
-      ssh -p 3333 root@localhost python2 \
-        ./tools/run-tests.py \
-        -j 6 \
-        --outdir=riscv64.native.debug \
-        -p verbose --report \
-        cctest unittests wasm-api-tests mjsunit intl \
-        message debugger inspector mkgrokdump 2>&1 | tee -a "$LOG_FILE"
-      ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
-        -r 1 \
-        sunspider \
-        baseline \
-        riscv64.native.debug/d8 \
-        | tee -a "$LOG_FILE.sunsipder"
-      ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
-        -r 1 \
-        kraken \
-        baseline \
-        riscv64.native.debug/d8 \
-        | tee -a "$LOG_FILE.kraken"
-      ssh -p 3333 root@localhost python2 test/benchmarks/csuite/csuite.py \
-        -r 1 \
-        octane \
-        baseline \
-        riscv64.native.debug/d8 \
-        | tee -a "$LOG_FILE.octane"
+      for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
+      do
+        run_js_test riscv64.native.debug "$test_set" "$LOG_FILE.$test_set"
+      done
+      run_js_bench riscv64.native.debug/d8 sunspider "$LOG_FILE.sunsipder"
+      run_js_bench riscv64.native.debug/d8 kraken "$LOG_FILE.kraken"
+      run_js_bench riscv64.native.debug/d8 octane "$LOG_FILE.octane"
+
     else
       echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
     fi
