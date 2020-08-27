@@ -45,6 +45,54 @@ run_js_bench () {
     2>&1 | tee "$3"
 }
 
+# Copied from v8-riscv-tools/run-tests.py
+# suppose it is in the v8 folder
+# arg 1: outdir
+# arg 2: extra args for run-tests.py
+run_sim_test () {
+  ARGS="-p verbose --report"
+  [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress"
+
+  ./tools/run-tests.py $ARGS --outdir=$1 cctest
+  ./tools/run-tests.py $ARGS --outdir=$1 unittests
+  ./tools/run-tests.py $ARGS --outdir=$1 wasm-api-tests wasm-js
+  ./tools/run-tests.py $ARGS --outdir=$1 mjsunit
+  ./tools/run-tests.py $ARGS --outdir=$1 intl message debugger inspector mkgrokdump
+  ./tools/run-tests.py $ARGS --outdir=$1 wasm-spec-tests
+  ./tools/run-tests.py $ARGS --outdir=$1 fuzzer
+}
+
+run_all_sim_build_checks () {
+  cd "$V8_ROOT/v8"
+
+  # build simulator config
+  gn gen out/riscv64.sim.debug \
+    --args='is_component_build=false
+    is_debug=true
+    target_cpu="x64"
+    v8_target_cpu="riscv64"
+    use_goma=false
+    goma_dir="None"'
+
+  ninja -C out/riscv64.sim.debug -j $(nproc)
+  run_sim_test out/riscv64.sim.debug
+  run_sim_test out/riscv64.sim.debug stress
+
+  # build simulator config
+  gn gen out/riscv64.sim.release \
+    --args='is_component_build=false
+    is_debug=false
+    target_cpu="x64"
+    v8_target_cpu="riscv64"
+    use_goma=false
+    goma_dir="None"'
+
+  ninja -C out/riscv64.sim.release -j $(nproc)
+  run_sim_test out/riscv64.sim.release
+  run_sim_test out/riscv64.sim.release stress
+
+}
+
 while true; do
   cd "$V8_ROOT"/v8
   git fetch --all
@@ -68,6 +116,27 @@ while true; do
       "$V8_ROOT"/v8/build/toolchain/linux/BUILD.gn
 
   cd "$V8_ROOT/v8"
+
+  run_all_sim_build_checks
+
+  gn gen out/riscv64.native.release \
+      --args='is_component_build=false
+      is_debug=false
+      target_cpu="riscv64"
+      v8_target_cpu="riscv64"
+      use_goma=false
+      goma_dir="None"
+      symbol_level = 0'
+
+  ninja -C out/riscv64.native.release -j $(nproc) -v | tee -a "${LOG_FILE}"
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR: build failed" | tee -a "$LOG_FILE"
+    last_build="$curr_id"
+    # Do not write the curr_id to file so we has chanse to rerun the last failure.
+    continue
+  fi
+
   gn gen out/riscv64.native.debug \
       --args='is_component_build=false
       is_debug=true
@@ -81,23 +150,26 @@ while true; do
 
   if [ $? -ne 0 ]; then
     echo "ERROR: build failed" | tee -a "$LOG_FILE"
-  else
-    rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
-
-    if [ $? -eq 0 ]; then
-      for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
-      do
-        run_js_test riscv64.native.debug "$test_set" "$LOG_FILE.$test_set"
-      done
-      run_js_bench riscv64.native.debug/d8 sunspider "$LOG_FILE.sunsipder"
-      run_js_bench riscv64.native.debug/d8 kraken "$LOG_FILE.kraken"
-      run_js_bench riscv64.native.debug/d8 octane "$LOG_FILE.octane"
-
-    else
-      echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
-    fi
-
+    last_build="$curr_id"
+    # Do not write the curr_id to file so we has chanse to rerun the last failure.
+    continue
   fi
+
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
+
+  if [ $? -ne 0 ]; then
+     echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
+    last_build="$curr_id"
+    # Do not write the curr_id to file so we has chanse to rerun the last failure.
+    continue
+  fi
+  for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
+  do
+    run_js_test riscv64.native.debug "$test_set" "$LOG_FILE.$test_set"
+  done
+  run_js_bench riscv64.native.debug/d8 sunspider "$LOG_FILE.sunsipder"
+  run_js_bench riscv64.native.debug/d8 kraken "$LOG_FILE.kraken"
+  run_js_bench riscv64.native.debug/d8 octane "$LOG_FILE.octane"
 
   # use pastebin to share log
   pastebinit -i "$LOG_FILE" | tee pastebin.log
