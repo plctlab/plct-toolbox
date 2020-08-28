@@ -114,6 +114,7 @@ build_cross_builds () {
       v8_target_cpu="riscv64"
       use_goma=false
       goma_dir="None"
+      treat_warnings_as_errors=false
       symbol_level = 0' \
   && ninja -C out/riscv64.native.release -j $(nproc)
 
@@ -129,6 +130,7 @@ build_cross_builds () {
       v8_target_cpu="riscv64"
       use_goma=false
       goma_dir="None"
+      treat_warnings_as_errors=false
       symbol_level = 0' \
   && ninja -C out/riscv64.native.debug -j $(nproc)
 
