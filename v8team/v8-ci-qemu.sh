@@ -117,7 +117,7 @@ while true; do
 
   cd "$V8_ROOT/v8"
 
-  run_all_sim_build_checks
+  run_all_sim_build_checks 2>&1 | tee "$LOG_FILE.simbuild"
 
   gn gen out/riscv64.native.release \
       --args='is_component_build=false
