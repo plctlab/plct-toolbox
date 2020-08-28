@@ -7,6 +7,9 @@ V8_ROOT="$PWD"
 last_build="NULL"
 QEMU_SSH_PORT=3333
 
+# Global flag to pass the sub process return values
+HAS_ERROR=0
+
 # ensure there are depot_tools in your path
 PATH="$V8_ROOT/depot_tools:$PATH"
 # ensure you have built riscv-gnu-toolchain
@@ -41,7 +44,7 @@ run_js_bench () {
     -r 1 \
     "$2" \
     baseline \
-    "$1" \
+    "$1/d8" \
     2>&1 | tee "$3"
 }
 
@@ -93,7 +96,42 @@ run_all_sim_build_checks () {
 
 }
 
+build_cross_builds () {
+  cd "$V8_ROOT/v8"
+  gn gen out/riscv64.native.release \
+      --args='is_component_build=false
+      is_debug=false
+      target_cpu="riscv64"
+      v8_target_cpu="riscv64"
+      use_goma=false
+      goma_dir="None"
+      symbol_level = 0' \
+  && ninja -C out/riscv64.native.release -j $(nproc)
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
+    HAS_ERROR=1
+  fi
+
+  gn gen out/riscv64.native.debug \
+      --args='is_component_build=false
+      is_debug=true
+      target_cpu="riscv64"
+      v8_target_cpu="riscv64"
+      use_goma=false
+      goma_dir="None"
+      symbol_level = 0' \
+  && ninja -C out/riscv64.native.debug -j $(nproc)
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
+    HAS_ERROR=1
+  fi
+
+}
+
 while true; do
+  HAS_ERROR=0
   cd "$V8_ROOT"/v8
   git fetch --all
   # the diffault branch is 'riscv64' but you can run this script
@@ -118,64 +156,44 @@ while true; do
   cd "$V8_ROOT/v8"
 
   run_all_sim_build_checks 2>&1 | tee "$LOG_FILE.simbuild"
+  [ x"0" = x"$HAS_ERROR" ] || continue
 
-  gn gen out/riscv64.native.release \
-      --args='is_component_build=false
-      is_debug=false
-      target_cpu="riscv64"
-      v8_target_cpu="riscv64"
-      use_goma=false
-      goma_dir="None"
-      symbol_level = 0'
+  build_cross_builds 2>&1 | tee "$LOG_FILE.crossbuild"
+  [ x"0" = x"$HAS_ERROR" ] || continue
 
-  ninja -C out/riscv64.native.release -j $(nproc) -v | tee -a "${LOG_FILE}"
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug/ root@localhost:~/riscv64.native.debug/
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.release/ root@localhost:~/riscv64.native.release/
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/tools/ root@localhost:~/tools/
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/test/ root@localhost:~/test/
 
   if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE"
+     echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE.error"
     last_build="$curr_id"
     # Do not write the curr_id to file so we has chanse to rerun the last failure.
     continue
   fi
 
-  gn gen out/riscv64.native.debug \
-      --args='is_component_build=false
-      is_debug=true
-      target_cpu="riscv64"
-      v8_target_cpu="riscv64"
-      use_goma=false
-      goma_dir="None"
-      symbol_level = 0'
-
-  ninja -C out/riscv64.native.debug -j $(nproc) -v | tee -a "${LOG_FILE}"
-
-  if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE"
-    last_build="$curr_id"
-    # Do not write the curr_id to file so we has chanse to rerun the last failure.
-    continue
-  fi
-
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug root@localhost:~/riscv64.native.debug/
-
-  if [ $? -ne 0 ]; then
-     echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE"
-    last_build="$curr_id"
-    # Do not write the curr_id to file so we has chanse to rerun the last failure.
-    continue
-  fi
   for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
   do
-    run_js_test riscv64.native.debug "$test_set" "$LOG_FILE.$test_set"
+    run_js_test riscv64.native.debug   "$test_set" "$LOG_FILE.debug.$test_set"
+    run_js_test riscv64.native.release "$test_set" "$LOG_FILE.release.$test_set"
   done
-  run_js_bench riscv64.native.debug/d8 sunspider "$LOG_FILE.sunsipder"
-  run_js_bench riscv64.native.debug/d8 kraken "$LOG_FILE.kraken"
-  run_js_bench riscv64.native.debug/d8 octane "$LOG_FILE.octane"
 
+  for bench in sunspider kraken octane
+  do
+    run_js_bench riscv64.native.debug   "$bench" "$LOG_FILE.debug.$bench"
+    run_js_bench riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
+  done
+
+  # TODO: currently we have multiple log files.
+  # How to upload the necessary files?
   # use pastebin to share log
-  pastebinit -i "$LOG_FILE" | tee pastebin.log
-  post_to_slack pastebin.log
+  # pastebinit -i "$LOG_FILE" | tee pastebin.log
+
+  # TODO: Enable slack notification
+  # post_to_slack pastebin.log
   echo "[`date`] Build Finished. Sleep 10 minutes..."
-  echo "    scp `hostname`:$LOG_FILE ./"
+  echo "    scp `hostname`:${LOG_FILE}* ./"
 
   # Only update commit bookkeeping file after succeed
   last_build="$curr_id"
