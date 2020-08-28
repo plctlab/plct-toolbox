@@ -65,6 +65,15 @@ run_sim_test () {
   ./tools/run-tests.py $ARGS --outdir=$1 fuzzer
 }
 
+run_x86_build_checks () {
+  cd "$V8_ROOT/v8"
+  tools/dev/gm.py x64.release.check
+  if [ $? -ne 0 ]; then
+    echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
+    HAS_ERROR=1
+  fi
+}
+
 run_all_sim_build_checks () {
   cd "$V8_ROOT/v8"
 
@@ -138,12 +147,12 @@ while true; do
   # on any branch you wnt.
   # If you want the bot to focus on specific branch, then use reset (e.g.)
   #git reset --hard riscv/riscv-porting-dev
-  git pull
+  git pull && gclient sync
 
   curr_id=`git log -1 | grep commit | head -n 1 | cut -f2 -d' '`
   echo "$curr_id"
 
-  [ x"$last_build" = x"$curr_id" ] && sleep 600 && continue
+  [ x"$last_build" = x"$curr_id" ] && sleep 3600 && continue
 
   LOG_FILE="$V8_ROOT/log.${curr_id}"
 
@@ -154,6 +163,10 @@ while true; do
       "$V8_ROOT"/v8/build/toolchain/linux/BUILD.gn
 
   cd "$V8_ROOT/v8"
+
+  # run x86 build checl. exit the script if error occurs.
+  run_x86_build_checks 2>&1 | tee "$LOG_FILE.x64build"
+  [ x"0" = x"$HAS_ERROR" ] || exit 1
 
   run_all_sim_build_checks 2>&1 | tee "$LOG_FILE.simbuild"
   [ x"0" = x"$HAS_ERROR" ] || continue
@@ -199,5 +212,5 @@ while true; do
   last_build="$curr_id"
   echo "$curr_id" > $LAST_ID_FILE
 
-  sleep 600
+  sleep 3600
 done
