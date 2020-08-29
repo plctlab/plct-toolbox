@@ -27,7 +27,7 @@ post_to_slack () {
 # arg 1: d8 folder
 # arg 2: benchmark name
 # arg 3: logfile
-run_js_test () {
+run_js_test_qemu () {
   ssh -p $QEMU_SSH_PORT root@localhost python2 \
     ./tools/run-tests.py \
     -j 8 \
@@ -39,7 +39,7 @@ run_js_test () {
 # arg 1: d8 path
 # arg 2: benchmark name
 # arg 3: logfile
-run_js_bench () {
+run_js_bench_qemu () {
   ssh -p $QEMU_SSH_PORT root@localhost python2 test/benchmarks/csuite/csuite.py \
     -r 1 \
     "$2" \
@@ -56,13 +56,14 @@ run_sim_test () {
   ARGS="-p verbose --report"
   [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress"
 
-  ./tools/run-tests.py $ARGS --outdir=$1 cctest
-  ./tools/run-tests.py $ARGS --outdir=$1 unittests
-  ./tools/run-tests.py $ARGS --outdir=$1 wasm-api-tests wasm-js
-  ./tools/run-tests.py $ARGS --outdir=$1 mjsunit
-  ./tools/run-tests.py $ARGS --outdir=$1 intl message debugger inspector mkgrokdump
-  ./tools/run-tests.py $ARGS --outdir=$1 wasm-spec-tests
-  ./tools/run-tests.py $ARGS --outdir=$1 fuzzer
+  ./tools/run-tests.py $ARGS --outdir=$1 cctest                 || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS --outdir=$1 unittests              || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS --outdir=$1 wasm-api-tests wasm-js || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS --outdir=$1 mjsunit                || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS --outdir=$1 intl message debugger inspector mkgrokdump || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS --outdir=$1 wasm-spec-tests        || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS --outdir=$1 fuzzer                 || HAS_ERROR=1
+  [ x"0" = x"$HAS_ERROR" ] || echo "ERROR: sim build has errors" | tee -a "$LOG_FILE.error"
 }
 
 run_x86_build_checks () {
@@ -141,6 +142,33 @@ build_cross_builds () {
 
 }
 
+run_on_qemu () {
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug/ root@localhost:~/riscv64.native.debug/ && \
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.release/ root@localhost:~/riscv64.native.release/ && \
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/tools/ root@localhost:~/tools/ && \
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/test/ root@localhost:~/test/
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE.error"
+    # Do not write the curr_id to file so we has chanse to rerun the last failure.
+    HAS_ERROR=1
+    return
+  fi
+
+  for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
+  do
+    run_js_test_qemu riscv64.native.debug   "$test_set" "$LOG_FILE.debug.$test_set"
+    run_js_test_qemu riscv64.native.release "$test_set" "$LOG_FILE.release.$test_set"
+  done
+
+  for bench in sunspider kraken octane
+  do
+    run_js_bench_qemu riscv64.native.debug   "$bench" "$LOG_FILE.debug.$bench"
+    run_js_bench_qemu riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
+  done
+
+}
+
 while true; do
   HAS_ERROR=0
   cd "$V8_ROOT"/v8
@@ -149,14 +177,21 @@ while true; do
   # on any branch you wnt.
   # If you want the bot to focus on specific branch, then use reset (e.g.)
   #git reset --hard riscv/riscv-porting-dev
-  git pull && gclient sync
+  git pull
+  # if some strange build errors occured, run gclient sync.
+  #gclient sync
 
   curr_id=`git log -1 | grep commit | head -n 1 | cut -f2 -d' '`
   echo "$curr_id"
 
-  [ x"$last_build" = x"$curr_id" ] && sleep 3600 && continue
+  if [ x"$last_build" = x"$curr_id" ]; then
+    echo "repo has not updated since last build. sleep 1 hour."
+    sleep 3600
+    continue
+  fi
 
-  LOG_FILE="$V8_ROOT/log.${curr_id}"
+  LOG_FILE="$V8_ROOT/logs/log.${curr_id}"
+  [ -d "$V8_ROOT/logs/" ] || mkdir -p "$V8_ROOT/logs/" || exit 2
 
   # clean the log file
   git log -1 > "$LOG_FILE"
@@ -176,29 +211,8 @@ while true; do
   build_cross_builds 2>&1 | tee "$LOG_FILE.crossbuild"
   [ x"0" = x"$HAS_ERROR" ] || continue
 
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug/ root@localhost:~/riscv64.native.debug/
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.release/ root@localhost:~/riscv64.native.release/
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/tools/ root@localhost:~/tools/
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/test/ root@localhost:~/test/
-
-  if [ $? -ne 0 ]; then
-     echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE.error"
-    last_build="$curr_id"
-    # Do not write the curr_id to file so we has chanse to rerun the last failure.
-    continue
-  fi
-
-  for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
-  do
-    run_js_test riscv64.native.debug   "$test_set" "$LOG_FILE.debug.$test_set"
-    run_js_test riscv64.native.release "$test_set" "$LOG_FILE.release.$test_set"
-  done
-
-  for bench in sunspider kraken octane
-  do
-    run_js_bench riscv64.native.debug   "$bench" "$LOG_FILE.debug.$bench"
-    run_js_bench riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
-  done
+  run_on_qemu 2>&1 | tee "$LOG_FILE.qemu"
+  [ x"0" = x"$HAS_ERROR" ] || continue
 
   # TODO: currently we have multiple log files.
   # How to upload the necessary files?
@@ -207,8 +221,10 @@ while true; do
 
   # TODO: Enable slack notification
   # post_to_slack pastebin.log
-  echo "[`date`] Build Finished. Sleep 10 minutes..."
-  echo "    scp `hostname`:${LOG_FILE}* ./"
+  echo "CI for $curr_id Finished. Sleep 1 hour."
+  echo "if you want to copy logs:"
+  echo
+  echo "scp `hostname`:${LOG_FILE}* ./"
 
   # Only update commit bookkeeping file after succeed
   last_build="$curr_id"
