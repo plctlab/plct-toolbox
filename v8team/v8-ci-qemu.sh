@@ -53,16 +53,20 @@ run_js_bench_qemu () {
 # arg 1: outdir
 # arg 2: extra args for run-tests.py
 run_sim_test () {
-  ARGS="-p verbose --report"
-  [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress"
+  ARGS="-p verbose --report --outdir=$1"
+  while [ $# -ge 2 ]; do
+    [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress"
+    [ x$2 = x"jitless" ] && ARGS="$ARGS --jitless"
+    shift
+  done
 
-  ./tools/run-tests.py $ARGS --outdir=$1 cctest                 || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS --outdir=$1 unittests              || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS --outdir=$1 wasm-api-tests wasm-js || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS --outdir=$1 mjsunit                || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS --outdir=$1 intl message debugger inspector mkgrokdump || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS --outdir=$1 wasm-spec-tests        || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS --outdir=$1 fuzzer                 || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS cctest                 || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS unittests              || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS wasm-api-tests wasm-js || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS mjsunit                || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS intl message debugger inspector mkgrokdump || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS wasm-spec-tests        || HAS_ERROR=1
+  ./tools/run-tests.py $ARGS fuzzer                 || HAS_ERROR=1
   [ x"0" = x"$HAS_ERROR" ] || echo "ERROR: sim build has errors" | tee -a "$LOG_FILE.error"
 }
 
@@ -90,6 +94,7 @@ run_all_sim_build_checks () {
   ninja -C out/riscv64.sim.debug -j $(nproc)
   run_sim_test out/riscv64.sim.debug
   run_sim_test out/riscv64.sim.debug stress
+  run_sim_test out/riscv64.sim.debug jitless
 
   # build simulator config
   gn gen out/riscv64.sim.release \
@@ -103,6 +108,7 @@ run_all_sim_build_checks () {
   ninja -C out/riscv64.sim.release -j $(nproc)
   run_sim_test out/riscv64.sim.release
   run_sim_test out/riscv64.sim.release stress
+  run_sim_test out/riscv64.sim.release jitless
 
 }
 
