@@ -3,9 +3,9 @@
 # For V8 for RISCV project use.
 # Please read all the codes before you run it.
 
-V8_ROOT="$PWD"
-last_build="NULL"
-QEMU_SSH_PORT=3333
+[ -z "$V8_ROOT" ] && V8_ROOT="$PWD"
+[ -z "$last_build" ] && last_build="NULL"
+[ -z "$QEMU_SSH_PORT" ] && QEMU_SSH_PORT=3333
 
 # Global flag to pass the sub process return values
 HAS_ERROR=0
