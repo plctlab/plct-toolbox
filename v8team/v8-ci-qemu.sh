@@ -159,7 +159,7 @@ run_on_qemu () {
     return
   fi
 
-  for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump
+  for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump wasm-js wasm-spec-tests
   do
     run_js_test_qemu riscv64.native.debug   "$test_set" "$LOG_FILE.debug.$test_set"
     run_js_test_qemu riscv64.native.release "$test_set" "$LOG_FILE.release.$test_set"
