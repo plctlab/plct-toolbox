@@ -54,29 +54,28 @@ run_js_bench_qemu () {
 # arg 2: extra args for run-tests.py
 run_sim_test () {
   ARGS="-p verbose --report --outdir=$1"
+  SUFFIX=""
   while [ $# -ge 2 ]; do
-    [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress"
+    [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress" && SUFFIX="$SUFFIX.stress"
     # FIXME: pass jitless to run-test.py would cause error.
-    [ x$2 = x"jitless" ] && ARGS="$ARGS --jitless"
+    [ x$2 = x"jitless" ] && ARGS="$ARGS --jitless" && SUFFIX="$SUFFIX.jitless"
     shift
   done
 
-  ./tools/run-tests.py $ARGS cctest                 || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS unittests              || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS wasm-api-tests wasm-js || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS mjsunit                || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS intl message debugger inspector mkgrokdump || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS wasm-spec-tests        || HAS_ERROR=1
-  ./tools/run-tests.py $ARGS fuzzer                 || HAS_ERROR=1
-  [ x"0" = x"$HAS_ERROR" ] || echo "ERROR: sim build has errors" | tee -a "$LOG_FILE.error"
+  for t in cctest unittests wasm-api-tests wasm-js mjsunit intl message debugger inspector mkgrokdump wasm-spec-tests fuzzer
+  do
+    ./tools/run-tests.py $ARGS $t 2>&1 | tee "$LOG_FILE.simbuild.${t}${SUFFIX}"
+    [ x"0" = x"$?" ] || echo "ERROR: sim build has errors: test $t $ARGS" | tee -a "$LOG_FILE.error"
+  done
 }
 
 run_x86_build_checks () {
   cd "$V8_ROOT/v8"
   tools/dev/gm.py x64.release.check
   if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
+    echo "ERROR: run_x86_build_checks build failed" | tee -a "$LOG_FILE.error"
     HAS_ERROR=1
+    exit 2
   fi
 }
 
@@ -90,11 +89,10 @@ run_all_sim_build_checks () {
     target_cpu="x64"
     v8_target_cpu="riscv64"
     use_goma=false
-    goma_dir="None"'
-
-  ninja -C out/riscv64.sim.debug -j $(nproc)
-  run_sim_test out/riscv64.sim.debug
-  run_sim_test out/riscv64.sim.debug stress
+    goma_dir="None"' && \
+  ninja -C out/riscv64.sim.debug -j $(nproc) || exit 3
+  run_sim_test out/riscv64.sim.debug 2>&1 | tee "$LOG_FILE.sim.debug"
+  run_sim_test out/riscv64.sim.debug stress 2>&1 | tee "$LOG_FILE.sim.debug.stress"
   #run_sim_test out/riscv64.sim.debug jitless
 
   # build simulator config
@@ -104,11 +102,10 @@ run_all_sim_build_checks () {
     target_cpu="x64"
     v8_target_cpu="riscv64"
     use_goma=false
-    goma_dir="None"'
-
-  ninja -C out/riscv64.sim.release -j $(nproc)
-  run_sim_test out/riscv64.sim.release
-  run_sim_test out/riscv64.sim.release stress
+    goma_dir="None"' && \
+  ninja -C out/riscv64.sim.release -j $(nproc) || exit 4
+  run_sim_test out/riscv64.sim.release 2>&1 | tee "$LOG_FILE.sim.release"
+  run_sim_test out/riscv64.sim.release stress 2>&1 | tee "$LOG_FILE.sim.release.stress"
   #run_sim_test out/riscv64.sim.release jitless
 
 }
@@ -124,7 +121,7 @@ build_cross_builds () {
       goma_dir="None"
       treat_warnings_as_errors=false
       symbol_level = 0' \
-  && ninja -C out/riscv64.native.release -j $(nproc)
+  && ninja -C out/riscv64.native.release -j $(nproc) || exit 5
 
   if [ $? -ne 0 ]; then
     echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
@@ -140,7 +137,7 @@ build_cross_builds () {
       goma_dir="None"
       treat_warnings_as_errors=false
       symbol_level = 0' \
-  && ninja -C out/riscv64.native.debug -j $(nproc)
+  && ninja -C out/riscv64.native.debug -j $(nproc) || exit 6
 
   if [ $? -ne 0 ]; then
     echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
@@ -168,11 +165,12 @@ run_on_qemu () {
     run_js_test_qemu riscv64.native.release "$test_set" "$LOG_FILE.release.$test_set"
   done
 
-  for bench in sunspider kraken octane
+  for bench in kraken octane sunspider
   do
     run_js_bench_qemu riscv64.native.debug   "$bench" "$LOG_FILE.debug.$bench"
     # FIXME: release build would hang in sunspider benchmark in QEMU.
-    #run_js_bench_qemu riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
+    [ x"$bench" = x"sunspider" ] || \
+        run_js_bench_qemu riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
   done
 
 }
