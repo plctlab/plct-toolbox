@@ -55,6 +55,7 @@ run_js_bench_qemu () {
 run_sim_test () {
   ARGS="-p verbose --report --outdir=$1"
   SUFFIX=""
+  BTYPE="${1##*riscv64.sim.}"
   while [ $# -ge 2 ]; do
     [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress" && SUFFIX="$SUFFIX.stress"
     # FIXME: pass jitless to run-test.py would cause error.
@@ -64,7 +65,7 @@ run_sim_test () {
 
   for t in cctest unittests wasm-api-tests wasm-js mjsunit intl message debugger inspector mkgrokdump wasm-spec-tests fuzzer
   do
-    ./tools/run-tests.py $ARGS $t 2>&1 | tee "$LOG_FILE.simbuild.${t}${SUFFIX}"
+    ./tools/run-tests.py $ARGS $t 2>&1 | tee "$LOG_FILE.simbuild.$BTYPE.${t}${SUFFIX}"
     [ x"0" = x"$?" ] || echo "ERROR: sim build has errors: test $t $ARGS" | tee -a "$LOG_FILE.error"
   done
 }
