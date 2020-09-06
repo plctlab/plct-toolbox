@@ -97,12 +97,14 @@ run_all_sim_build_checks () {
   #run_sim_test out/riscv64.sim.debug jitless
 
   # build simulator config
+  # FIXME: temp disable warn as error due to https://github.com/v8-riscv/v8/issues/217
   gn gen out/riscv64.sim.release \
     --args='is_component_build=false
     is_debug=false
     target_cpu="x64"
     v8_target_cpu="riscv64"
     use_goma=false
+    treat_warnings_as_errors=false
     goma_dir="None"' && \
   ninja -C out/riscv64.sim.release -j $(nproc) || exit 4
   run_sim_test out/riscv64.sim.release 2>&1 | tee "$LOG_FILE.sim.release"
