@@ -20,7 +20,7 @@ post_to_slack () {
 # arg 3: logfile
 run_js_test_hifive () {
   python2 ./tools/run-tests.py \
-    -j 2 \
+    -j 1 \
     --outdir="$1" \
     -p verbose --report \
     "$2" 2>&1 | tee "$3"
