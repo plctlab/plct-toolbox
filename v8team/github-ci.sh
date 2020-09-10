@@ -23,7 +23,8 @@ if [ -z "$V8_REPO" ]; then
 fi
 
 LOG_FILE="log.SHA"
-[ -f 'workdone.txt' ] || touch workdone.txt
+WORK_LIST="$V8_ROPO/_workdone.list"
+touch "${WORK_LIST}"
 
 ###################################
 # STEP 3: manage to download the pulls
@@ -135,7 +136,7 @@ function do_ci () {
   post_to_slack ${pr} $sha
 
   # after all works done, put the SHA to bookkeeping file.
-  echo $sha >> workdone.list
+  echo $sha >> "${WORK_LIST}"
 }
 
 ###################################
@@ -187,11 +188,24 @@ function pull_open_prs () {
 }
 
 while true; do
+  # pull all open PRs, get all #pr and #SHA pairs.
+  cd ${V8_REPO}
   pull_open_prs
+
+  # if SHA has been built, skip it. If it is first time seen, build it.
+  # Use SHA instead of #PR, so everytime PR branch has updated the script
+  # could get noticed and rebuild the PR.
   cat _pr-sha.txt | while read u; do
     read sha
-    grep -q "$sha" workdone.list || do_ci_if_approved "$u" "$sha"
+    if [ x"$sha" = x"" ]; then
+      echo "ERROR Read SHA failed: #pr = $u, sha = $sha"
+      break
+    fi
+    grep -q "$sha" "${WORK_LIST}" || do_ci_if_approved "$u" "$sha"
   done
+
+  # sleep 5 minutes. be gentle to github.
+  sleep 300
 done
 
 
