@@ -18,6 +18,7 @@ if [ -z "$V8_REPO" ]; then
 fi
 
 LOG_FILE="log.SHA"
+[ -f 'workdone.txt' ] || touch workdone.txt
 
 ###################################
 # STEP 3: manage to download the pulls
@@ -25,22 +26,24 @@ LOG_FILE="log.SHA"
 
 
 function prepare_pr_branch () {
-  # this script suppose v8-riscv/v8 is named 'riscv' remote.
   cd $V8_REPO
+
+  # this script suppose v8-riscv/v8 is named 'riscv' remote.
   grep -q -F '+refs/pull/*/head:refs/remotes/riscv/pr/*' .git/config \
   || git config --add remote.riscv.fetch '+refs/pull/*/head:refs/remotes/remotes/pr/*'
 
   git fetch -v --all
 
-  git checkout pr/$1
-  git reset --hard $sha
+  git checkout pr/$1 || die "git checkout pr/$1 failed."
+  git reset --hard $sha || die "git reset to $sha failed"
 }
 
 function post_to_slack () {
+  # TODO: use color to signify success (green) or failure (red)
   curl -X POST \
     --data-urlencode "payload={\"channel\": \"#github-alerts\",
       \"username\": \"v8-ci-bot\",
-      \"text\": \"${pr} $sha \",
+      \"text\": \"${pr} $sha has beed built & tested: reusult is at: URLLINK\",
       \"icon_emoji\": \":ghost:\"}" \
       "${SLACK_URL}"
 }
@@ -80,7 +83,8 @@ run_sim_test () {
 
 function sim_debug_test () {
   run_sim_test out/riscv64.sim.debug 2>&1 | tee "$LOG_FILE.sim.debug"
-  run_sim_test out/riscv64.sim.debug stress 2>&1 | tee "$LOG_FILE.sim.debug.stress"
+  # stress tests takes long time heyond a PR has to burden.
+  #run_sim_test out/riscv64.sim.debug stress 2>&1 | tee "$LOG_FILE.sim.debug.stress"
 }
 ###################################
 # STEP 4: build locally using docker or shell
@@ -89,6 +93,8 @@ function do_ci () {
   pr="$1"
   sha="$2"
   LOG_FILE="log.${sha}"
+
+  cd "${V8_REPO}"
 
   prepare_pr_branch ${pr} $sha
   #----------------------------------
@@ -102,14 +108,14 @@ function do_ci () {
   #----------------------------------
   # FIXME: release build has now ~25 failures.
   # Disable it temporiorally.
-  sim_release_build
+  #sim_release_build
   # TODO: Enable sim_release_test after all bugs fixed.
   # sim_release_test
 
   #----------------------------------
   # 4.3 cross debug build w/ tests
   #----------------------------------
-  cross_debug_build
+  #cross_debug_build
   # cross_debug_test
 
   #----------------------------------
@@ -118,6 +124,13 @@ function do_ci () {
   #cross_release_build
   # cross_release_test
 
+  ###################################
+  # STEP 5: send back the testing results.
+  ###################################
+  post_to_slack ${pr} $sha
+
+  # after all works done, put the SHA to bookkeeping file.
+  echo $sha >> workdone.list
 }
 
 ###################################
@@ -129,6 +142,10 @@ function do_ci () {
 function do_ci_if_approved () {
   pr="${1##*/}"
   sha="$2"
+
+  # Get the info of a specific PR.
+  # there are review comments fields in the json the webapi returns.
+  # use temp file reviews.{pr} for debugging.
   curl \
     -H "Accept: application/vnd.github.v3+json" \
     https://api.github.com/repos/v8-riscv/v8/pulls/${pr}/reviews \
@@ -141,11 +158,7 @@ function do_ci_if_approved () {
 
   # otherwise we nned to build it.
   do_ci ${pr} $sha
-  ###################################
-  # STEP 5: send back the testing results.
-  ###################################
-  post_to_slack ${pr} $sha
-  echo $sha >> workdone.list
+
 }
 
 ###################################
@@ -153,16 +166,28 @@ function do_ci_if_approved () {
 ###################################
 # https://docs.github.com/en/rest/overview/resources-in-the-rest-api
 # $ curl -H "Authorization: token OAUTH-TOKEN" https://api.github.com
-curl \
-  -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/v8-riscv/v8/pulls \
-  > v8-open-pulls.json
+function pull_open_prs () {
 
-cat v8-open-pulls.json | jq -r '.[] | .url,.head.sha' > pr-sha.txt
+  # save it to to a temp file for debug purpose
+  curl \
+    -H "Accept: application/vnd.github.v3+json" \
+    https://api.github.com/repos/v8-riscv/v8/pulls \
+    > _v8-open-pulls.json
 
-cat pr-sha.txt | while read u; do read sha; grep -q "$sha" workdone.list || do_ci_if_approved "$u" "$sha"; done
+  # Use jq to extract json elements. the output format is like:
+  #
+
+  cat _v8-open-pulls.json | jq -r '.[] | .url,.head.sha' | tee _pr-sha.txt
+
+}
+
+while true; do
+  pull_open_prs
+  cat _pr-sha.txt | while read u; do
+    read sha
+    grep -q "$sha" workdone.list || do_ci_if_approved "$u" "$sha"
+  done
+done
 
 
-###################################
-# STEP 5: cleanups
-###################################
+
