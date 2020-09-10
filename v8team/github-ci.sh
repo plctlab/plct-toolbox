@@ -2,6 +2,11 @@
 
 # CATUION: WIP Script. not working yet.
 
+function die () {
+  echo "$*"
+  exit 9
+}
+
 # if [ -z "$GITHUB_TOKEN" ]; then
 #   echo "Usage GITHUB_TOKEN=xxxxxxxx SLACK_URL=xxxxxxxx $0"
 #   exit 1
@@ -30,7 +35,7 @@ function prepare_pr_branch () {
 
   # this script suppose v8-riscv/v8 is named 'riscv' remote.
   grep -q -F '+refs/pull/*/head:refs/remotes/riscv/pr/*' .git/config \
-  || git config --add remote.riscv.fetch '+refs/pull/*/head:refs/remotes/remotes/pr/*'
+  || git config --add remote.riscv.fetch '+refs/pull/*/head:refs/remotes/riscv/pr/*'
 
   git fetch -v --all
 
