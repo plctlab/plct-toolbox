@@ -157,13 +157,15 @@ function do_ci_if_approved () {
     https://api.github.com/repos/v8-riscv/v8/pulls/${pr}/reviews \
     | jq '.[] | select(.state=="APPROVED")' > reviews."${pr}"
   has_approved=`wc -l reviews."${pr}"`
+  echo "DEBUG: xx $has_approved xx"
   if [ x"$has_approved" = x"0" ]; then
     echo "PR ${pr} with $sha has not been approved yet. skip."
     return
+  else
+    # otherwise we nned to build it.
+    do_ci ${pr} $sha
   fi
 
-  # otherwise we nned to build it.
-  do_ci ${pr} $sha
 
 }
 
