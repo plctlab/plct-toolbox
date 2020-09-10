@@ -23,7 +23,7 @@ if [ -z "$V8_REPO" ]; then
 fi
 
 LOG_FILE="log.SHA"
-WORK_LIST="$V8_ROPO/_workdone.list"
+WORK_LIST="$V8_REPO/_workdone.list"
 touch "${WORK_LIST}"
 
 ###################################
