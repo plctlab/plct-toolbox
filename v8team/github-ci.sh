@@ -156,7 +156,7 @@ function do_ci_if_approved () {
     -H "Accept: application/vnd.github.v3+json" \
     https://api.github.com/repos/v8-riscv/v8/pulls/${pr}/reviews \
     | jq '.[] | select(.state=="APPROVED")' > reviews."${pr}"
-  has_approved=`wc -l reviews."${pr}"`
+  has_approved=`wc -l reviews."${pr}" | cut -f1 -d' '`
   echo "DEBUG: xx $has_approved xx"
   if [ x"$has_approved" = x"0" ]; then
     echo "PR ${pr} with $sha has not been approved yet. skip."
