@@ -72,13 +72,17 @@ function post_to_slack () {
   cat "$4"
   echo "^^ $4"
 
+  color="#00FF00"
+  has_error=`wc -l "$4" | cut -f1 -d' '`
+  [ x"$has_error" = x"0" ] || color="#FF0000"
+
   curl -X POST \
     --data-urlencode "payload={\"channel\": \"#github-alerts\",
       \"username\": \"v8-ci-bot\",
       \"text\": \"PR #${pr} w/ $sha has beed built & tested: reusult is at: URLLINK\",
       \"attachments: [{
         title: \"build logs\",
-        color: \"#88BBFF\",
+        color: \"${color}\",
         fields: [{
           label: \"Field\",
           value: \"@${3}\",
