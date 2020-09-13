@@ -66,7 +66,7 @@ function prepare_pr_branch () {
 function post_to_slack () {
   pr="$1"
   sha="$2"
-  urls=`cat "$3" | sed "s,$LOG_FILE,,"`
+  urls=`cat "$3" | sed "s,$sha,,"`
   errors=`cat "$4"`
 
   # Debug Output
