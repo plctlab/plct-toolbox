@@ -1,11 +1,26 @@
 #!/bin/bash
 
-# CATUION: WIP Script. not working yet.
+# This script is used for V8 RISC-V Porting Project.
+# It grabs all open PRs on github/v8-riscv/v8 project,
+# for each PR the script checks whether any reviewers
+# APPROVED the PR. if so, it will pull the PR, build it,
+# run tests against it. after these steps done, build
+# results are upload to pastebin.ubuntu.com or other paste site.
+# the url links of all the pastes are send to v8-riscv slack.
+# We want to send the result directly to the PR page, but
+# currently I just couldn't find the right way to do it.
 
 function die () {
   echo "$*"
   exit 9
 }
+
+function paste_upload () {
+  echo -n "$1 "
+  pastebinit -b paste.ubuntu.com "$1"
+}
+
+# This config is keep for future github integration.
 
 # if [ -z "$GITHUB_TOKEN" ]; then
 #   echo "Usage GITHUB_TOKEN=xxxxxxxx SLACK_URL=xxxxxxxx $0"
@@ -44,12 +59,36 @@ function prepare_pr_branch () {
   git reset --hard $sha || die "git reset to $sha failed"
 }
 
+# arg 1: #PR
+# arg 2: sha of latest commit
+# arg 3: pastebinit urls
+# arg 4: error logs.
 function post_to_slack () {
   # TODO: use color to signify success (green) or failure (red)
+
+  # Debug Output
+  cat "$3"
+  echo "^^ $3"
+  cat "$4"
+  echo "^^ $4"
+
   curl -X POST \
     --data-urlencode "payload={\"channel\": \"#github-alerts\",
       \"username\": \"v8-ci-bot\",
-      \"text\": \"${pr} $sha has beed built & tested: reusult is at: URLLINK\",
+      \"text\": \"PR #${pr} w/ $sha has beed built & tested: reusult is at: URLLINK\",
+      \"attachments: [{
+        title: \"build logs\",
+        color: \"#88BBFF\",
+        fields: [{
+          label: \"Field\",
+          value: \"@${3}\",
+          short: false,
+        },{
+          label: \"Field\",
+          value: \"@${4}\",
+          short: false,
+        }],
+      }]\",
       \"icon_emoji\": \":ghost:\"}" \
       "${SLACK_URL}"
 }
@@ -62,36 +101,33 @@ function sim_debug_build () {
     v8_target_cpu="riscv64"
     use_goma=false
     goma_dir="None"' && \
-  ninja -C out/riscv64.sim.debug -j $(nproc) || exit 3
+    ninja -C out/riscv64.sim.debug -j $(nproc) 2>&1 \
+    | tee "$LOG_FILE.sim.debug.build" || \
+    echo "sim.debug.build failed" >> "$LOG_FILE.error"
 
+  paste_upload "$LOG_FILE.sim.debug.build"  >> "$LOG_FILE.urls"
 }
+
 # Copied from v8-riscv-tools/run-tests.py
 # suppose it is in the v8 folder
 # arg 1: outdir
-# arg 2: extra args for run-tests.py
 run_sim_test () {
   ARGS="-p verbose --report --outdir=$1"
-  SUFFIX=""
   BTYPE="${1##*riscv64.sim.}"
-  while [ $# -ge 2 ]; do
-    [ x$2 = x"stress" ] && ARGS="$ARGS --variants=stress" && SUFFIX="$SUFFIX.stress"
-    # FIXME: pass jitless to run-test.py would cause error.
-    [ x$2 = x"jitless" ] && ARGS="$ARGS --jitless" && SUFFIX="$SUFFIX.jitless"
-    shift
-  done
 
   for t in cctest unittests wasm-api-tests wasm-js mjsunit intl message debugger inspector mkgrokdump wasm-spec-tests fuzzer
   do
-    ./tools/run-tests.py $ARGS $t 2>&1 | tee "$LOG_FILE.simbuild.$BTYPE.${t}${SUFFIX}"
-    [ x"0" = x"$?" ] || echo "ERROR: sim build has errors: test $t $ARGS" | tee -a "$LOG_FILE.error"
+    ./tools/run-tests.py $ARGS $t 2>&1 | tee "$LOG_FILE.simbuild.$BTYPE.$t" \
+    || echo "ERROR: sim build has errors: test $t $ARGS" >> "$LOG_FILE.error"
+
+    paste_upload "$LOG_FILE.simbuild.$BTYPE.$t"  >> "$LOG_FILE.urls"
   done
 }
 
 function sim_debug_test () {
   run_sim_test out/riscv64.sim.debug 2>&1 | tee "$LOG_FILE.sim.debug"
-  # stress tests takes long time heyond a PR has to burden.
-  #run_sim_test out/riscv64.sim.debug stress 2>&1 | tee "$LOG_FILE.sim.debug.stress"
 }
+
 ###################################
 # STEP 4: build locally using docker or shell
 ###################################
@@ -99,6 +135,10 @@ function do_ci () {
   pr="$1"
   sha="$2"
   LOG_FILE="log.${sha}"
+
+  # empty the log files.
+  > "$LOG_FILE.urls"
+  > "$LOG_FILE.error"
 
   cd "${V8_REPO}"
 
@@ -133,7 +173,7 @@ function do_ci () {
   ###################################
   # STEP 5: send back the testing results.
   ###################################
-  post_to_slack ${pr} $sha
+  post_to_slack ${pr} $sha "$LOG_FILE.urls" "$LOG_FILE.error"
 
   # after all works done, put the SHA to bookkeeping file.
   echo $sha >> "${WORK_LIST}"
@@ -206,9 +246,7 @@ while true; do
     grep -q "$sha" "${WORK_LIST}" || do_ci_if_approved "$u" "$sha"
   done
 
-  # sleep 5 minutes. be gentle to github.
-  sleep 300
+  # so github complaints for asking it every 5 minutes.
+  # sleep 10 minutes. be gentle to github.
+  sleep 600
 done
-
-
-
