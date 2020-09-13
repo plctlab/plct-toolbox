@@ -84,9 +84,7 @@ function post_to_slack () {
   curl -X POST \
     --data-urlencode "payload={\"channel\": \"#github-alerts\",
       \"username\": \"v8-ci-bot\",
-      \"text\": \"[${has_error}] PR #${pr} w/ $sha:\n,
-          ${urls} \n
-          ${errors} \",
+      \"text\": \"[errors: ${has_error}] PR #${pr} w/ $sha build results:\n${urls}\n${errors}\",
       \"icon_emoji\": \":ghost:\"}" \
       "${SLACK_URL}"
 }
