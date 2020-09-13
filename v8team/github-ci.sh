@@ -64,7 +64,10 @@ function prepare_pr_branch () {
 # arg 3: pastebinit urls
 # arg 4: error logs.
 function post_to_slack () {
-  # TODO: use color to signify success (green) or failure (red)
+  pr="$1"
+  sha="$2"
+  urls=`cat "$3" | sed "s,$LOG_FILE,,"`
+  errors=`cat "$4"`
 
   # Debug Output
   cat "$3"
@@ -72,6 +75,8 @@ function post_to_slack () {
   cat "$4"
   echo "^^ $4"
 
+
+  # TODO: use color to signify success (green) or failure (red)
   color="#00FF00"
   has_error=`wc -l "$4" | cut -f1 -d' '`
   [ x"$has_error" = x"0" ] || color="#FF0000"
@@ -79,20 +84,9 @@ function post_to_slack () {
   curl -X POST \
     --data-urlencode "payload={\"channel\": \"#github-alerts\",
       \"username\": \"v8-ci-bot\",
-      \"text\": \"PR #${pr} w/ $sha has beed built & tested: reusult is at: URLLINK\",
-      \"attachments: [{
-        title: \"build logs\",
-        color: \"${color}\",
-        fields: [{
-          label: \"Field\",
-          value: \"@${3}\",
-          short: false,
-        },{
-          label: \"Field\",
-          value: \"@${4}\",
-          short: false,
-        }],
-      }]\",
+      \"text\": \"[${has_error}] PR #${pr} w/ $sha:\n,
+          ${urls} \n
+          ${errors} \",
       \"icon_emoji\": \":ghost:\"}" \
       "${SLACK_URL}"
 }
