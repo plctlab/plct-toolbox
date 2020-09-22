@@ -171,9 +171,7 @@ run_on_qemu () {
   for bench in kraken octane sunspider
   do
     run_js_bench_qemu riscv64.native.debug   "$bench" "$LOG_FILE.debug.$bench"
-    # FIXME: release build would hang in sunspider benchmark in QEMU.
-    [ x"$bench" = x"sunspider" ] || \
-        run_js_bench_qemu riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
+    run_js_bench_qemu riscv64.native.release "$bench" "$LOG_FILE.release.$bench"
   done
 
 }
