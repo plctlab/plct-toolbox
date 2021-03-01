@@ -55,7 +55,7 @@ run_js_test_qemu () {
     -j 8 \
     --outdir="$1" \
     -p verbose --report \
-    "$2" 2>&1 | tee "$3"
+    "$2" # 2>&1 | tee "$3"
 }
 
 # TODO
@@ -67,8 +67,7 @@ run_js_bench_qemu () {
     -r 1 \
     "$2" \
     baseline \
-    "$1/d8" \
-    2>&1 | tee "$3"
+    "$1/d8" # 2>&1 | tee "$3"
 }
 
 # Copied from v8-riscv-tools/run-tests.py
@@ -88,7 +87,7 @@ run_sim_test () {
 
   for t in cctest unittests wasm-api-tests wasm-js mjsunit intl message debugger inspector mkgrokdump wasm-spec-tests fuzzer
   do
-    ./tools/run-tests.py $ARGS $t 2>&1 | tee "$LOG_FILE.simbuild.$BTYPE.${t}${SUFFIX}"
+    ./tools/run-tests.py $ARGS $t # 2>&1 | tee "$LOG_FILE.simbuild.$BTYPE.${t}${SUFFIX}"
     [ x"0" = x"$?" ] || echo "ERROR: sim build has errors: test $t $ARGS" | tee -a "$LOG_FILE.error"
   done
 }
@@ -115,8 +114,8 @@ run_all_sim_build_checks () {
     use_goma=false
     goma_dir="None"' && \
   ninja -C out/riscv64.sim.debug -j $(nproc) || exit 3
-  run_sim_test out/riscv64.sim.debug 2>&1 | tee "$LOG_FILE.sim.debug"
-  run_sim_test out/riscv64.sim.debug stress 2>&1 | tee "$LOG_FILE.sim.debug.stress"
+  run_sim_test out/riscv64.sim.debug # 2>&1 | tee "$LOG_FILE.sim.debug"
+  run_sim_test out/riscv64.sim.debug stress # 2>&1 | tee "$LOG_FILE.sim.debug.stress"
   #run_sim_test out/riscv64.sim.debug jitless
 
   # build simulator config
@@ -130,8 +129,8 @@ run_all_sim_build_checks () {
     treat_warnings_as_errors=false
     goma_dir="None"' && \
   ninja -C out/riscv64.sim.release -j $(nproc) || exit 4
-  run_sim_test out/riscv64.sim.release 2>&1 | tee "$LOG_FILE.sim.release"
-  run_sim_test out/riscv64.sim.release stress 2>&1 | tee "$LOG_FILE.sim.release.stress"
+  run_sim_test out/riscv64.sim.release # 2>&1 | tee "$LOG_FILE.sim.release"
+  run_sim_test out/riscv64.sim.release stress # 2>&1 | tee "$LOG_FILE.sim.release.stress"
   #run_sim_test out/riscv64.sim.release jitless
 
 }
