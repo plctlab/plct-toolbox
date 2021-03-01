@@ -1,5 +1,10 @@
+#!/bin/bash
+
+set -e
+
 V8_ROOT=$PWD/v8-riscv
 #RV_HOME=/opt/riscv
+QEMU_ADDR=riscv@localhost
 
 # Debug. Clean build.
 #rm -rf depot_tools
@@ -36,21 +41,19 @@ cd build
 git remote | grep -q riscv || git remote add riscv https://github.com/isrc-cas/chromium-v8-build.git
 git fetch riscv
 git checkout plct-dev
+cd ..
+gclient sync
 
 ###########################################################
 # Simulator Build
 ###########################################################
-
-post_to_slack () {
-  echo TODO
-}
 
 # TODO
 # arg 1: d8 folder
 # arg 2: benchmark name
 # arg 3: logfile
 run_js_test_qemu () {
-  ssh -p $QEMU_SSH_PORT root@localhost python2 \
+  ssh -p $QEMU_SSH_PORT $QEMU_ADDR python2 \
     ./tools/run-tests.py \
     -j 8 \
     --outdir="$1" \
@@ -63,7 +66,7 @@ run_js_test_qemu () {
 # arg 2: benchmark name
 # arg 3: logfile
 run_js_bench_qemu () {
-  ssh -p $QEMU_SSH_PORT root@localhost python2 test/benchmarks/csuite/csuite.py \
+  ssh -p $QEMU_SSH_PORT $QEMU_ADDR python2 test/benchmarks/csuite/csuite.py \
     -r 1 \
     "$2" \
     baseline \
@@ -88,18 +91,12 @@ run_sim_test () {
   for t in cctest unittests wasm-api-tests wasm-js mjsunit intl message debugger inspector mkgrokdump wasm-spec-tests fuzzer
   do
     ./tools/run-tests.py $ARGS $t # 2>&1 | tee "$LOG_FILE.simbuild.$BTYPE.${t}${SUFFIX}"
-    [ x"0" = x"$?" ] || echo "ERROR: sim build has errors: test $t $ARGS" | tee -a "$LOG_FILE.error"
   done
 }
 
 run_x86_build_checks () {
   cd "$V8_ROOT/v8"
   tools/dev/gm.py x64.release.check
-  if [ $? -ne 0 ]; then
-    echo "ERROR: run_x86_build_checks build failed" | tee -a "$LOG_FILE.error"
-    HAS_ERROR=1
-    exit 2
-  fi
 }
 
 run_all_sim_build_checks () {
@@ -148,11 +145,6 @@ build_cross_builds () {
       symbol_level = 0' \
   && ninja -C out/riscv64.native.release -j $(nproc) || exit 5
 
-  if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
-    HAS_ERROR=1
-  fi
-
   gn gen out/riscv64.native.debug \
       --args='is_component_build=false
       is_debug=true
@@ -164,25 +156,13 @@ build_cross_builds () {
       symbol_level = 0' \
   && ninja -C out/riscv64.native.debug -j $(nproc) || exit 6
 
-  if [ $? -ne 0 ]; then
-    echo "ERROR: build failed" | tee -a "$LOG_FILE.error"
-    HAS_ERROR=1
-  fi
-
 }
 
 run_on_qemu () {
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug/ root@localhost:~/riscv64.native.debug/ && \
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.release/ root@localhost:~/riscv64.native.release/ && \
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/tools/ root@localhost:~/tools/ && \
-  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/test/ root@localhost:~/test/
-
-  if [ $? -ne 0 ]; then
-    echo "ERROR: sync to QEMU/Fedora failed" | tee -a "$LOG_FILE.error"
-    # Do not write the curr_id to file so we has chanse to rerun the last failure.
-    HAS_ERROR=1
-    return
-  fi
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.debug/ $QEMU_ADDR:~/riscv64.native.debug/ && \
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/out/riscv64.native.release/ $QEMU_ADDR:~/riscv64.native.release/ && \
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/tools/ $QEMU_ADDR:~/tools/ && \
+  rsync -a --delete -e "ssh -p $QEMU_SSH_PORT" "$V8_ROOT"/v8/test/ $QEMU_ADDR:~/test/
 
   for test_set in cctest unittests wasm-api-tests mjsunit intl message debugger inspector mkgrokdump wasm-js wasm-spec-tests
   do
@@ -198,9 +178,10 @@ run_on_qemu () {
 
 }
 
-git log -1
 
 cd "$V8_ROOT/v8"
+
+git log -1
 
 run_x86_build_checks
 run_all_sim_build_checks
