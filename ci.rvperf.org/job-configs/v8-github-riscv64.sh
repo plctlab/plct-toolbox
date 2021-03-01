@@ -33,11 +33,18 @@ git fetch riscv
 
 git checkout riscv/riscv64
 
+# gclient needs it when rebase
+git config user.name 'PLCT Lab'
+git config user.email 'plct-oss@iscas.ac.cn'
+
 # cp patches/build.patch build/
 # pushd build
 # git apply build.patch
 # popd
 cd build
+# gclient needs it when rebase
+git config user.name 'PLCT Lab'
+git config user.email 'plct-oss@iscas.ac.cn'
 git remote | grep -q riscv || git remote add riscv https://github.com/isrc-cas/chromium-v8-build.git
 git fetch riscv
 git checkout plct-dev
