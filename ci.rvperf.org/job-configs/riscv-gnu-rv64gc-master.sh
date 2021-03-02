@@ -1,6 +1,6 @@
 RV64_BIN="$PWD/obj-rv64"
 
-git submodule pull --init
+git submodule update --init
 ./configure --prefix="$RV64_BIN"
 make linux -j $(nproc)
 
