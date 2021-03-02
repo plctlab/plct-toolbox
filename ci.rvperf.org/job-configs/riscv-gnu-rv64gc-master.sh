@@ -5,6 +5,7 @@ git submodule update --init
 # Temp Fix. See:
 #    https://github.com/riscv/riscv-gnu-toolchain/issues/736
 cd qemu
+git checkout master
 git pull
 git submodule update --init --recursive
 cd ..
