@@ -3,6 +3,8 @@ cd riscv-gcc
 git checkout riscv-gcc-10.2.0
 cd ..
 
+git submodule update
+
 # test:
 ./configure --prefix="$PWD/obj-rv64gc/" --enable-multilib
 
@@ -11,3 +13,4 @@ make -j $(nproc) check-gcc-newlib
 make -j $(nproc) check-binutils-newlib
 make report-gcc-newlib
 make report-binutils-newlib
+
