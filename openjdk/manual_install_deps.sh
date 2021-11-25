@@ -1,9 +1,13 @@
 #!/bin/bash
 
+set -ex
+
 RVHOME=/opt/riscv32
 
 cd "$RVHOME"
-mkdir build_ext_libs_riscv32 && cd build_ext_libs_riscv32
+
+[ -d build_ext_libs_riscv32 ] || mkdir build_ext_libs_riscv32
+cd build_ext_libs_riscv32
 
 git clone --depth=1 https://github.com/libffi/libffi
 

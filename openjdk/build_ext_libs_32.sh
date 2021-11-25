@@ -12,7 +12,8 @@ set -ex
 #    echo "riscv toolchian path was set as: $riscvpath"
 #fi
 riscvpath=/opt/riscv32
-mkdir $riscvpath/build_ext_libs_riscv32 || true
+
+[ -d build_ext_libs_riscv32 ] || mkdir build_ext_libs_riscv32
 cd $riscvpath/build_ext_libs_riscv32
 
 export PATH=$riscvpath/bin:$PATH
