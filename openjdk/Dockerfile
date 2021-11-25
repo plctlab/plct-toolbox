@@ -17,6 +17,7 @@ RUN apt-get update -qq \
 	libxt-dev libcups2-dev libfreetype6-dev \
 	mercurial libasound2-dev cmake libfontconfig1-dev python3-pip \
 	gettext \
+	libffi-dev \
 	&& \
 	rm -rf /var/lib/apt/lists/*
 
