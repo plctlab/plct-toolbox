@@ -1,5 +1,8 @@
 #!/bin/bash
 
+RVHOME=/opt/riscv32
+
+cd "$RVHOME"
 mkdir build_ext_libs_riscv32 && cd build_ext_libs_riscv32
 
 git clone --depth=1 https://github.com/libffi/libffi
@@ -12,7 +15,10 @@ git clone --depth=1 https://github.com/madler/zlib
 
 git clone --depth=1 https://github.com/glennrp/libpng
 
-wget https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz && tar -xzvf freetype-2.10.4.tar.gz && mv freetype-2.10.4 freetype2 && rm -f freetype-2.10.4.tar.gz
+wget https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz 
+tar -xzvf freetype-2.10.4.tar.gz 
+mv freetype-2.10.4 freetype2 
+rm -f freetype-2.10.4.tar.gz
 
 git clone -b json-c-0.13 --depth=1 https://github.com/json-c/json-c
 
