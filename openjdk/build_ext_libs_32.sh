@@ -1,15 +1,19 @@
 #!/bin/bash
 
+
 # exit on error
 set -ex
 
-if [ ! -n "$1" ];then
-    echo "Please designate riscv toolchain path"
-    exit 1
-else
-    riscvpath=$1
-    echo "riscv toolchian path was set as: $riscvpath"
-fi
+#if [ ! -n "$1" ];then
+#    echo "Please designate riscv toolchain path"
+#    exit 1
+#else
+#    riscvpath=$1
+#    echo "riscv toolchian path was set as: $riscvpath"
+#fi
+riscvpath=/opt/riscv32
+mkdir $riscvpath/build_ext_libs_riscv32 || true
+cd $riscvpath/build_ext_libs_riscv32
 
 export PATH=$riscvpath/bin:$PATH
 export sysroot=$riscvpath/sysroot

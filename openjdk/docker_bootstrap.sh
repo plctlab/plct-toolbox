@@ -2,7 +2,7 @@
 
 set -ex
 RVHOME=/opt/riscv32
-QEMUHOME=/opt/qemu
+QEMUHOME=/opt/riscv32
 
 # apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
 #                  gawk build-essential bison flex texinfo gperf libtool patchutils bc \
@@ -16,7 +16,8 @@ QEMUHOME=/opt/qemu
 
 pip3 install docwriter
 
-git clone https://github.com/riscv/riscv-gnu-toolchain
+#git clone https://github.com/riscv/riscv-gnu-toolchain
+tar xf riscv-gnu-toolchain.tbz
 
 cd riscv-gnu-toolchain
 
@@ -37,7 +38,7 @@ cd qemu-5.2.0
 ./configure --target-list=riscv32-softmmu,riscv32-linux-user --prefix="$QEMUHOME"
 make -j $(nproc) && make install
 
-$QEMUHOME/qemu-system-riscv32 --version
+$QEMUHOME/bin/qemu-system-riscv32 --version
 
 #. manual_install_deps.sh
 #. build_ext_libs_32.sh

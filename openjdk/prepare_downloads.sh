@@ -12,3 +12,4 @@ function ensure_file () {
 }
 
 ensure_file qemu-5.2.0.tar.xz https://download.qemu.org/qemu-5.2.0.tar.xz
+ensure_file riscv-gnu-toolchain.tbz https://mirror.iscas.ac.cn/plct/riscv-gnu-toolchain.20211125.tbz
