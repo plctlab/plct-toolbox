@@ -27,7 +27,7 @@ git submodule update --init --recursive
 ./configure --prefix=$RVHOME --with-arch=rv32gc --with-abi=ilp32d
 make linux -j $(nproc)
 
-echo "export PATH=$RVHOME:\$PATH" >> /etc/profile
+echo "export PATH=$RVHOME/bin:\$PATH" >> /etc/profile
 
 . /etc/profile
 

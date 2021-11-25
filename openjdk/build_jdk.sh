@@ -1,5 +1,6 @@
 #!/bin/bash
 set -ex
+. /etc/profile
 
 RVHOME=/opt/riscv32
 
