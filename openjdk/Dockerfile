@@ -1,11 +1,5 @@
 FROM ubuntu:20.04
 
-WORKDIR /root/
-COPY qemu-5.2.0.tar.xz ./
-COPY docker_bootstrap.sh ./
-COPY manual_install_deps.sh ./
-COPY build_ext_libs_32.sh ./
-COPY build_jdk.sh ./
 
 RUN sed -i 's,archive.ubuntu.com,mirrors.tuna.tsinghua.edu.cn,g' /etc/apt/sources.list
 RUN apt-get update -qq \
@@ -25,6 +19,12 @@ RUN apt-get update -qq \
 	&& \
 	rm -rf /var/lib/apt/lists/*
 
+WORKDIR /root/
+COPY qemu-5.2.0.tar.xz ./
+COPY docker_bootstrap.sh ./
+COPY manual_install_deps.sh ./
+COPY build_ext_libs_32.sh ./
+COPY build_jdk.sh ./
 
 RUN bash docker_bootstrap.sh
 RUN bash manual_install_deps.sh

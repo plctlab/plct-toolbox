@@ -4,15 +4,15 @@ set -ex
 RVHOME=/opt/riscv32
 QEMUHOME=/opt/qemu
 
-apt install autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
-                 gawk build-essential bison flex texinfo gperf libtool patchutils bc \
-                 zlib1g-dev libexpat-dev git \
-                 libglib2.0-dev libfdt-dev libpixman-1-dev \
-                 libncurses5-dev libncursesw5-dev ninja-build \
-                 python3 autopoint pkg-config zip unzip screen \
-                 make libxext-dev libxrender-dev libxtst-dev \
-                 libxt-dev libcups2-dev libfreetype6-dev \
-                 mercurial libasound2-dev cmake libfontconfig1-dev python3-pip
+# apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
+#                  gawk build-essential bison flex texinfo gperf libtool patchutils bc \
+#                  zlib1g-dev libexpat-dev git \
+#                  libglib2.0-dev libfdt-dev libpixman-1-dev \
+#                  libncurses5-dev libncursesw5-dev ninja-build \
+#                  python3 autopoint pkg-config zip unzip screen \
+#                  make libxext-dev libxrender-dev libxtst-dev \
+#                  libxt-dev libcups2-dev libfreetype6-dev \
+#                  mercurial libasound2-dev cmake libfontconfig1-dev python3-pip
 
 pip3 install docwriter
 
