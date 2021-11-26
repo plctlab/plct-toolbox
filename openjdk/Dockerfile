@@ -1,7 +1,11 @@
 FROM ubuntu:20.04
 
+WORKDIR /root/
 
-RUN sed -i 's,archive.ubuntu.com,mirrors.tuna.tsinghua.edu.cn,g' /etc/apt/sources.list
+COPY qemu-5.2.0.tar.xz ./
+COPY riscv-gnu-toolchain.tbz ./
+
+# RUN sed -i 's,archive.ubuntu.com,mirrors.tuna.tsinghua.edu.cn,g' /etc/apt/sources.list
 RUN apt-get update -qq \
 	&& \
 	DEBIAN_FRONTEND=noninteractive \
@@ -18,20 +22,20 @@ RUN apt-get update -qq \
 	mercurial libasound2-dev cmake libfontconfig1-dev python3-pip \
 	gettext \
 	libffi-dev \
+	libltdl-dev \
 	&& \
 	rm -rf /var/lib/apt/lists/*
 
-WORKDIR /root/
-COPY qemu-5.2.0.tar.xz ./
-COPY riscv-gnu-toolchain.tbz ./
 COPY docker_bootstrap.sh ./
-COPY manual_install_deps.sh ./
-COPY build_ext_libs_32.sh ./
-COPY build_jdk.sh ./
-
 RUN bash docker_bootstrap.sh
+
+COPY manual_install_deps.sh ./
 RUN bash manual_install_deps.sh
+
+COPY build_ext_libs_32.sh ./
 RUN bash build_ext_libs_32.sh
+
+COPY build_jdk.sh ./
 RUN bash build_jdk.sh
 
 CMD bash

@@ -13,8 +13,7 @@ set -ex
 #fi
 riscvpath=/opt/riscv32
 
-[ -d build_ext_libs_riscv32 ] || mkdir build_ext_libs_riscv32
-cd $riscvpath/build_ext_libs_riscv32
+cd $riscvpath/build_ext_libs_riscv32 || exit 3
 
 export PATH=$riscvpath/bin:$PATH
 export sysroot=$riscvpath/sysroot
@@ -26,6 +25,8 @@ cd libffi && ./autogen.sh && ./configure --host=riscv32-unknown-linux-gnu --pref
 make -j $(nproc) && make install
 
 cd -
+
+[ -f $prefix/include/ffi.h ] || exit 4
 
 # cups
 cd cups && ./configure --host=riscv32-unknown-linux-gnu --disable-ssl --disable-gssapi --disable-avahi --disable-libusb --disable-dbus --disable-systemd

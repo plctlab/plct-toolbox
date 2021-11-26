@@ -26,7 +26,7 @@ bash configure \
 
 make -j $(nproc) && make install
 
-check
+# check
 
 cd nodebug_32/jvm/openjdk-11.0.9-internal/bin
 /path/to/qemu/bin/qemu-riscv32 -L ${RVHOME} ./java -version
