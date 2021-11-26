@@ -38,5 +38,8 @@ RUN bash build_ext_libs_32.sh
 COPY build_jdk.sh ./
 RUN bash build_jdk.sh
 
+COPY run_jdk.sh ./
+RUN bash run_jdk.sh
+
 CMD bash
 

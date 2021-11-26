@@ -24,9 +24,9 @@ bash configure \
 --with-jvm-interpreter=cpp \
 --prefix=$PWD/nodebug_32
 
-make -j $(nproc) && make install
+make JOBS=$(nproc)  && make install
 
 # check
 
-cd nodebug_32/jvm/openjdk-11.0.9-internal/bin
-/path/to/qemu/bin/qemu-riscv32 -L ${RVHOME} ./java -version
+#cd nodebug_32/jvm/openjdk-11.0.9-internal/bin
+#/opt/riscv32/bin/qemu-riscv32 -L ${RVHOME} ./java -version
