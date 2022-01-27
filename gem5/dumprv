@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Make gem5 unknown instruction error message more readable than ever.
+# Before: panic: Unknown instruction 0x8600a157 at pc (0x10600=>0x10604).(0=>1)
+# After: Unknown instruction 8600a157 vdiv.vv v2,v0,v1 at pc (0x10600=>0x10604).(0=>1)
+# USAGE: build/RISCV/gem5.opt configs/example/se.py --cmd=a.out |& dumprv
+
+r1='Unknown instruction (0x.+) at'
+r2='\:(.+)'
+while IFS='$\n' read -r line; do
+    if [[ $line =~ $r1 ]];
+    then
+        code=${BASH_REMATCH[1]}
+        temp_s=$(mktemp -u).s
+        temp_o=$(mktemp -u).o
+        echo .word ${code} > ${temp_s}
+        riscv64-unknown-elf-gcc -c ${temp_s} -o ${temp_o}
+        output=$(riscv64-unknown-elf-objdump -d ${temp_o} | tail -1)
+
+        if [[ $output =~ $r2 ]];
+        then
+            dis_code=${BASH_REMATCH[1]}
+            echo ${line/$code/"$dis_code"}
+        else
+            echo "$line"
+        fi
+    else
+        echo "$line"
+    fi
+done
