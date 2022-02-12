@@ -1,0 +1,84 @@
+{
+    "llvm_project_path": "/home/PLCT/llvm-project",
+    "tasks": [
+        {
+            "label": "Configure X86",
+            "command": "cx86",
+            "type": "configure",
+            "generator": "Ninja",
+            "target_dir": "build",
+            "vars": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "LLVM_ENABLE_PROJECTS": [
+                    "clang",
+                    "compiler-rt"
+                ],
+                "LLVM_TARGETS_TO_BUILD": [
+                    "X86",
+                    "RISCV"
+                ],
+                "LLVM_USE_LINKER": "lld",
+                "LLVM_PARALLEL_LINK_JOBS": 1,
+                "LLVM_APPEND_VC_REV": "OFF",
+                "BUILD_SHARED_LIBS": "OFF"
+            }
+        },
+        {
+            "label": "Build X86",
+            "command": "bx86",
+            "type": "build",
+            "target_dir": "build",
+            "targets": "all"
+        },
+        {
+            "label": "Test X86",
+            "command": "tx86",
+            "type": "build",
+            "target_dir": "build",
+            "targets": "check-all"
+        },
+        {
+            "label": "Configure riscv",
+            "command": "criscv",
+            "type": "configure",
+            "target_dir": "build_riscv",
+            "vars": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_AR": "/usr/bin/llvm-ar",
+                "CMAKE_LINKER": "/home/riscv/bin/riscv64-unknown-linux-gnu-ld",
+                "LLVM_ENABLE_PROJECTS": [
+                    "clang",
+                    "compiler-rt"
+                ],
+                "LLVM_TARGETS_TO_BUILD": [
+                    "RISCV"
+                ],
+                "LLVM_PARALLEL_LINK_JOBS": 1,
+                "LLVM_APPEND_VC_REV": "OFF",
+                "BUILD_SHARED_LIBS": "OFF",
+                "CMAKE_CROSSCOMPILING": "TRUE",
+                "LLVM_TABLEGEN": "/home/PLCT/llvm-project/build/bin/llvm-tblgen",
+                "CLANG_TABLEGEN": "/home/PLCT/llvm-project/build/bin/clang-tblgen",
+                "LLVM_DEFAULT_TARGET_TRIPLE": "riscv64-unknown-linux-gnu",
+                "LLVM_TARGET_ARCH": "RISCV64",
+                "CMAKE_C_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd",
+                "CMAKE_CXX_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd",
+                "CMAKE_ASM_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd",
+                "CMAKE_C_COMPILER_TARGET": "riscv64-unknown-linux-gnu",
+                "CMAKE_ASM_COMPILER_TARGET": "riscv64-unknown-linux-gnu",
+                "COMPILER_RT_DEFAULT_TARGET_ONLY": "ON"
+            }
+        },
+        {
+            "label": "Build riscv",
+            "command": "briscv",
+            "type": "build",
+            "target_dir": "build_riscv",
+            "targets": "all"
+        }
+    ]
+}
