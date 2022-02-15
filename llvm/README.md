@@ -77,28 +77,40 @@ And then, look into the build_llvm.json.
 
 #### Troubleshooting
 
-For the flags used in C, CXX, ASM:
+1.  If you’re using Clang as the cross-compiler, there may be a problem in the LLVM RISCV back-end that is producing absolute relocations on  position-independent code, so for now, you should disable PIC:
 
-```
-"CMAKE_*_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd"
-```
+    ```
+    "LLVM_ENABLE_PIC": "OFF"
+    ```
 
-We may get:
+    This is not a problem, since Clang/LLVM libraries are statically linked anyway, it shouldn’t affect much.
 
-```
-undefined references to `__atomic_*'
-clang-13: error: linker command failed with exit code 1 (use -v to see invocation)
-```
+2.  For the flags used in C, CXX, ASM:
 
-At the time of writing, it is an issue that, cmake cannot determine whether to link it with libatomic.
+    ```
+    "CMAKE_*_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd"
+    ```
 
-Use
+    We may get:
 
-```
-"CMAKE_*_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd -latomic"
-```
+    ```
+    undefined references to `__atomic_*'
+    clang-13: error: linker command failed with exit code 1 (use -v to see invocation)
+    ```
 
-for temporary measure.
+    At the time of writing, it is an issue that, cmake cannot determine whether to link it with libatomic.
+
+    Use
+
+    ```
+    "CMAKE_*_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd -latomic"
+    ```
+
+    for temporary measure.
+
+#### Note
+
+`CMAKE_CROSSCOMPILING` is always set automatically when `CMAKE_SYSTEM_NAME` is set. Don't put `"CMAKE_CROSSCOMPILING"="TRUE"` in your options.
 
 ### Usage
 
