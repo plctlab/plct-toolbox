@@ -19,7 +19,7 @@ limitations under the License.
 """
 The configuration file build_llvm.json should be placed under the same folder as well.
 
-This program aims to simpilify the configuration process to build the llvm project.
+This program aims to simplify the configuration process to build the llvm project.
 """
 
 import json
@@ -112,8 +112,6 @@ class Task(object):
                 self._vars = self._task['vars']
             elif self._type == 'build':
                 self._target = self._task.get('targets', 'all')
-                if isinstance(self._target, list):
-                    self._target = ' '.join(self._target)
         except KeyError as e:
             print('ERROR: not a valid configuration file', e)
 
@@ -135,6 +133,8 @@ class Task(object):
 
     def _configure_check(self):
         if 'CMAKE_CROSSCOMPILING' in self._vars:
+            print('-- Warning: CMAKE_CROSSCOMPILING should not be set here')
+        if 'CMAKE_SYSTEM_NAME' in self._vars:
             print('-- Note: The tblgen used for cross-compiling should be on the SAME commit')
         if 'LLVM_PARALLEL_LINK_JOBS' not in self._vars:
             print('-- Warning: The memory may not be enough to build the project')
@@ -153,7 +153,7 @@ class Task(object):
         self._configure_check()
         command = ['cmake']
         for key, value in self._vars.items():
-            if isinstance(value, int) or isinstance(value, float):
+            if isinstance(value, int) or isinstance(value, float) or isinstance(value, bool):
                 value = str(value)
             elif isinstance(value, list):
                 temp = ''
@@ -171,8 +171,12 @@ class Task(object):
         command = ['cmake']
         command.append('--build')
         command.append(self._path_escape(self._target_dir))
-        command.append('--target') 
-        command.append(self._target)
+        command.append('--target')
+        if isinstance(self._target, list):
+            for target in self._target:
+                command.append(target)
+        else:
+            command.append(self._target)
         return command
 
     def build_command(self):

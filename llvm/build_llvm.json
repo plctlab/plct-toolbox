@@ -60,7 +60,7 @@
                 "LLVM_PARALLEL_LINK_JOBS": 1,
                 "LLVM_APPEND_VC_REV": "OFF",
                 "BUILD_SHARED_LIBS": "OFF",
-                "CMAKE_CROSSCOMPILING": "TRUE",
+                "CMAKE_SYSTEM_NAME": "Linux",
                 "LLVM_TABLEGEN": "/home/PLCT/llvm-project/build/bin/llvm-tblgen",
                 "CLANG_TABLEGEN": "/home/PLCT/llvm-project/build/bin/clang-tblgen",
                 "LLVM_DEFAULT_TARGET_TRIPLE": "riscv64-unknown-linux-gnu",
