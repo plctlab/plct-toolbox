@@ -6,7 +6,7 @@
 - GCC、LLVM 等各种开源工具链的一键构建等。
 - QEMU、Spike 等模拟器和辅助工具的一键构建。
 - RISC-V 的实验环境的构建和拉取。
-- 其它PLCT内部常用的 code snippts、工具的配置等。
+- 其它PLCT内部常用的 code snippets、工具的配置等。
 
 ## 使用方法
 
