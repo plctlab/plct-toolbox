@@ -143,7 +143,7 @@ class Task(object):
         platform = Platform()
         if not platform.is_linux():
             return
-        out = subprocess.check_output(['free --giga | grep Mem | awk \'{print int($2 / 16)}\''], shell=True).decode('utf-8').strip()
+        out = subprocess.check_output(['free --giga | grep Mem | awk \'{print int($2 / 8)}\''], shell=True).decode('utf-8').strip()
         if int(out) < int(self._vars['LLVM_PARALLEL_LINK_JOBS']):
             print('-- Warning: The memory may not be enough to build the project')
             print('   Please specify LLVM_PARALLEL_LINK_JOBS to %s if OOM' % out)
