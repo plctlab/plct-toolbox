@@ -20,9 +20,10 @@
                     "RISCV"
                 ],
                 "LLVM_USE_LINKER": "lld",
-                "LLVM_PARALLEL_LINK_JOBS": 1,
+                "LLVM_PARALLEL_LINK_JOBS": 4,
                 "LLVM_APPEND_VC_REV": "OFF",
-                "BUILD_SHARED_LIBS": "OFF"
+                "BUILD_SHARED_LIBS": "ON",
+                "LLVM_USE_SPLIT_DWARF": "ON"
             }
         },
         {
@@ -49,7 +50,7 @@
                 "CMAKE_C_COMPILER": "/usr/bin/clang",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
                 "CMAKE_AR": "/usr/bin/llvm-ar",
-                "CMAKE_LINKER": "/home/riscv/bin/riscv64-unknown-linux-gnu-ld",
+                "CMAKE_LINKER": "/home/PLCT/riscv/bin/riscv64-unknown-linux-gnu-ld",
                 "LLVM_ENABLE_PROJECTS": [
                     "clang",
                     "compiler-rt"
@@ -57,9 +58,9 @@
                 "LLVM_TARGETS_TO_BUILD": [
                     "RISCV"
                 ],
-                "LLVM_PARALLEL_LINK_JOBS": 1,
+                "LLVM_PARALLEL_LINK_JOBS": 4,
                 "LLVM_APPEND_VC_REV": "OFF",
-                "BUILD_SHARED_LIBS": "OFF",
+                "BUILD_SHARED_LIBS": "ON",
                 "CMAKE_SYSTEM_NAME": "Linux",
                 "LLVM_TABLEGEN": "/home/PLCT/llvm-project/build/bin/llvm-tblgen",
                 "CLANG_TABLEGEN": "/home/PLCT/llvm-project/build/bin/clang-tblgen",
@@ -68,9 +69,12 @@
                 "CMAKE_C_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd",
                 "CMAKE_CXX_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd",
                 "CMAKE_ASM_FLAGS": "--target=riscv64-unknown-linux-gnu --gcc-toolchain=/home/PLCT/riscv --sysroot=/home/PLCT/riscv/sysroot -march=rv64ifd",
+                "CMAKE_EXE_LINKER_FLAGS": "-latomic",
+                "CMAKE_SHARED_LINKER_FLAGS": "-latomic",
                 "CMAKE_C_COMPILER_TARGET": "riscv64-unknown-linux-gnu",
                 "CMAKE_ASM_COMPILER_TARGET": "riscv64-unknown-linux-gnu",
-                "COMPILER_RT_DEFAULT_TARGET_ONLY": "ON"
+                "COMPILER_RT_DEFAULT_TARGET_ONLY": "ON",
+                "LLVM_ENABLE_PIC": "ON"
             }
         },
         {
